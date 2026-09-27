@@ -14,12 +14,14 @@ and the story stay as they are.
 
 ## 導入 / Installation
 
-**ビルドは不要です。** [Releases](../../releases) から配布物をダウンロードし、
-中身の `xinput1_4.dll` と `Mods` フォルダを、ゲームのルート（`FatalFrameII.exe` と
-同じ場所）にそのままコピーするだけです。
+**ビルドは不要です。** [Releases](../../releases) または
+[Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25)
+から配布物をダウンロードし、中身の `xinput1_4.dll` と `Mods` フォルダを、ゲームの
+ルート（`FatalFrameII.exe` と同じ場所）にそのままコピーするだけです。
 
-**No build required.** Download the archive from [Releases](../../releases) and copy
-`xinput1_4.dll` and the `Mods` folder into the game's root directory (the folder
+**No build required.** Download the archive from [Releases](../../releases) or
+[Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25) and
+copy `xinput1_4.dll` and the `Mods` folder into the game's root directory (the folder
 containing `FatalFrameII.exe`).
 
 ```
