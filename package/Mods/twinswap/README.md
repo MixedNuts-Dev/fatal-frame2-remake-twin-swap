@@ -1,4 +1,4 @@
-# Twin Swap
+# TwinSwap
 
 **FATAL FRAME II: Crimson Butterfly REMAKE** 用の Mod です。
 A mod for FATAL FRAME / PROJECT ZERO II: Crimson Butterfly REMAKE.

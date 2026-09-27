@@ -1,4 +1,4 @@
-// FATAL FRAME II: Crimson Butterfly REMAKE — Twin Swap
+// FATAL FRAME II: Crimson Butterfly REMAKE — TwinSwap
 // Created by MixedNuts - https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
 // Licensed under the MIT License. See LICENSE for details.
 //

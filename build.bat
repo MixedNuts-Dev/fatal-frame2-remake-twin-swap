@@ -1,5 +1,5 @@
 @echo off
-rem FATAL FRAME II: Crimson Butterfly REMAKE - Twin Swap
+rem FATAL FRAME II: Crimson Butterfly REMAKE - TwinSwap
 rem Builds dist\ containing the files users drop into the game root.
 setlocal
 set "VS=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"

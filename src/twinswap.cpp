@@ -1,4 +1,4 @@
-// FATAL FRAME II: Crimson Butterfly REMAKE — Twin Swap
+// FATAL FRAME II: Crimson Butterfly REMAKE — TwinSwap
 // Created by MixedNuts - https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
 // Licensed under the MIT License. See LICENSE for details.
 //
@@ -755,7 +755,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID)
         g_cacheDir = g_modDir + L"cache\\";
 
         LoadConfig();
-        Log("Twin Swap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
+        Log("TwinSwap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
             g_subMio ? "mio" : "mayu");
 
         // 見た目が元のままなら何もしない
