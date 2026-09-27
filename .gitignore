@@ -1,0 +1,32 @@
+# build output / ビルド生成物
+dist/
+obj/
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# runtime log / 実行時ログ
+*.log
+
+# editor / OS
+.vs/
+.vscode/
+*.user
+Thumbs.db
+desktop.ini
+
+# release archive / 配布用アーカイブ
+*.zip
+
+# build artifacts, as a safety net / 念のため（build.bat の出力先は dist）
+*.dll
+*.exe
+
+# working notes, page copy, support replies / 作業メモ・ページ原稿・返信文
+# 配布物に含まれず、公開の必要もないのでリポジトリには置かない
+docs/
+
+# python cache
+__pycache__/
