@@ -24,7 +24,7 @@ and the story stay as they are.
 **ビルドは不要です。**
 
 1. [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
-   を、その Releases からダウンロードして先に導入します。
+   を、その Releases か [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26) からダウンロードして先に導入します。
 2. この Mod を [Releases](../../releases) または
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25)
    からダウンロードし、中身の `MixedNuts` フォルダを、ゲームのルート（`FatalFrameII.exe`
@@ -33,7 +33,7 @@ and the story stay as they are.
 **No build required.**
 
 1. Install [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
-   first (download it from its Releases).
+   first (download it from its Releases or [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26)).
 2. Download this mod from [Releases](../../releases) or
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25) and
    copy its `MixedNuts` folder into the game's root directory (the folder containing

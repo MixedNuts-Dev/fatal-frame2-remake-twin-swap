@@ -8,7 +8,8 @@ Created by MixedNuts
 **2.0.0 から MixedNuts Mod Loader（1.0.0 以降）が必要です。**
 **2.0.0 requires MixedNuts Mod Loader (1.0.0 or later).**
 
-https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
+GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
 
 ---
 
@@ -29,7 +30,8 @@ https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
 
 - FATAL FRAME II: Crimson Butterfly REMAKE（Steam 版）
 - **MixedNuts Mod Loader 1.0.0 以降**（別途導入が必要です）
-  https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
+  GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
   （Releases からダウンロードしてください）
 
 ゲームのファイルは一切変更しないため、Steam のファイル整合性チェックに
@@ -263,7 +265,8 @@ even when she looks like Mio.
 
 - FATAL FRAME II: Crimson Butterfly REMAKE (Steam)
 - **MixedNuts Mod Loader 1.0.0 or later** (installed separately)
-  https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
+  GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
   (download it from its Releases)
 
 No game files are modified, so this will not trip Steam's file integrity verification.
