@@ -91,9 +91,17 @@ Visual Studio 2022 の C++ ツールセットが必要です。外部ライブ�
 Requires the Visual Studio 2022 C++ toolset. No external libraries are used (the zlib
 decoder is written from scratch).
 
+共通コード（[mod-loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)）を
+submodule で取り込んでいるので、`--recursive` 付きで clone してください。
+The shared code ([mod-loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader))
+is a git submodule, so clone with `--recursive`.
+
 ```
+git clone --recursive https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap.git
 build.bat
 ```
+
+clone 済みなら / If already cloned: `git submodule update --init`
 
 `dist\` に配布用の一式が出力されます。 / The distributable set is written to `dist\`.
 

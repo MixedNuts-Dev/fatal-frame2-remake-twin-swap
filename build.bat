@@ -10,11 +10,13 @@ if errorlevel 1 exit /b 1
 set "ROOT=%~dp0"
 set "OUT=%ROOT%dist"
 set "OBJ=%ROOT%obj"
+set "COMMON=%ROOT%mod-loader\common"
+if not exist "%COMMON%\mixednuts\log.hpp" (echo [NG] mod-loader submodule is missing. Run: git submodule update --init & exit /b 1)
 if not exist "%OUT%\Mods\twinswap" mkdir "%OUT%\Mods\twinswap"
 if not exist "%OBJ%" mkdir "%OBJ%"
 
 echo === xinput1_4.dll ===
-cl /nologo /LD /O2 /EHsc /MT /W3 /std:c++17 /utf-8 /DNDEBUG /Fo"%OBJ%\t_" /Fe"%OUT%\xinput1_4.dll" "%ROOT%src\twinswap.cpp" /link /DEF:"%ROOT%src\xinput1_4.def" /OPT:REF /OPT:ICF
+cl /nologo /LD /O2 /EHsc /MT /W3 /std:c++17 /utf-8 /DNDEBUG /I"%COMMON%" /Fo"%OBJ%\t_" /Fe"%OUT%\xinput1_4.dll" "%ROOT%src\twinswap.cpp" /link /DEF:"%ROOT%src\xinput1_4.def" /OPT:REF /OPT:ICF
 if errorlevel 1 exit /b 1
 
 echo === copying package files ===

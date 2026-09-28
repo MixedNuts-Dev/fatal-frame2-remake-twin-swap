@@ -33,51 +33,41 @@
 #include <windows.h>
 #include <cstdio>
 #include <cstdint>
-#include <cstdarg>
 #include <cstring>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
+#include <mixednuts/bytes.hpp>
+#include <mixednuts/file.hpp>
+#include <mixednuts/iat.hpp>
+#include <mixednuts/ini.hpp>
+#include <mixednuts/log.hpp>
+#include <mixednuts/path.hpp>
+#include <mixednuts/proxy.hpp>
+
 #include "inflate.hpp"
 
 namespace {
+
+using mixednuts::Log;
+using mixednuts::Rd;
+using mixednuts::Utf8;
+using mixednuts::Wr;
+using mixednuts::file::ReadAt;
+using mixednuts::file::Stamp;   // サイズと更新日時が変われば、Yumia ツールで Mod が入れ替わったとみなす
 
 constexpr char     kVersion[]  = "1.0.0";
 constexpr char     kCacheTag[] = "twinswap-cache-v1";   // 生成ロジックを変えたら上げる
 constexpr uint32_t kFdataHash  = 0xFFFE7510;
 
-HMODULE      g_real = nullptr;
 std::wstring g_gameDir;
 std::wstring g_modDir;
 std::wstring g_cacheDir;
 
 bool g_enabled = true;
-bool g_log     = true;
 bool g_mainMayu = true;   // 操作キャラの見た目
 bool g_subMio   = true;   // 同行キャラの見た目
-
-// ---- ログ ---------------------------------------------------------------
-
-void Log(const char* fmt, ...)
-{
-    if (!g_log || g_modDir.empty()) return;
-    const std::wstring path = g_modDir + L"twinswap.log";
-    const bool isNew = (GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES);
-    FILE* f = nullptr;
-    if (_wfopen_s(&f, path.c_str(), L"a") != 0 || !f) return;
-    if (isNew) fwrite("\xEF\xBB\xBF", 1, 3, f);
-
-    SYSTEMTIME st{};
-    GetLocalTime(&st);
-    fprintf(f, "[%02d:%02d:%02d] ", st.wHour, st.wMinute, st.wSecond);
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(f, fmt, ap);
-    va_end(ap);
-    fputc('\n', f);
-    fclose(f);
-}
 
 // ---- CreateFileW のフック -----------------------------------------------
 
@@ -86,86 +76,24 @@ using PFN_CreateFileW = HANDLE(WINAPI*)(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIB
 PFN_CreateFileW  g_origCreateFileW = nullptr;
 CRITICAL_SECTION g_lock{};
 
+// ---- ファイル入出力 -----------------------------------------------------
+//
 // Mod 自身のファイル操作は、フックを通らない本来の関数で行う
+
 HANDLE OpenRead(const std::wstring& path)
 {
-    return g_origCreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-}
-
-// ---- ファイル入出力 -----------------------------------------------------
-
-bool ReadAt(HANDLE h, uint64_t off, void* dst, size_t n)
-{
-    LARGE_INTEGER li{};
-    li.QuadPart = static_cast<LONGLONG>(off);
-    if (!SetFilePointerEx(h, li, nullptr, FILE_BEGIN)) return false;
-    auto p = static_cast<uint8_t*>(dst);
-    size_t done = 0;
-    while (done < n)
-    {
-        const size_t left = n - done;
-        const DWORD want = static_cast<DWORD>(left > (16u << 20) ? (16u << 20) : left);
-        DWORD got = 0;
-        if (!ReadFile(h, p + done, want, &got, nullptr) || got == 0) return false;
-        done += got;
-    }
-    return true;
+    return mixednuts::file::OpenRead(path, g_origCreateFileW);
 }
 
 bool ReadWholeFile(const std::wstring& path, std::vector<uint8_t>& out)
 {
-    HANDLE h = OpenRead(path);
-    if (h == INVALID_HANDLE_VALUE) return false;
-    LARGE_INTEGER sz{};
-    bool ok = GetFileSizeEx(h, &sz) && sz.QuadPart > 0 && sz.QuadPart < (1LL << 30);
-    if (ok)
-    {
-        out.resize(static_cast<size_t>(sz.QuadPart));
-        ok = ReadAt(h, 0, out.data(), out.size());
-    }
-    CloseHandle(h);
-    return ok;
+    return mixednuts::file::ReadAll(path, out, (1ull << 30) - 1, g_origCreateFileW);
 }
 
 bool WriteWholeFile(const std::wstring& path, const std::vector<uint8_t>& data)
 {
-    const std::wstring tmp = path + L".tmp";
-    HANDLE h = g_origCreateFileW(tmp.c_str(), GENERIC_WRITE, 0, nullptr,
-                                 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (h == INVALID_HANDLE_VALUE) return false;
-    size_t done = 0;
-    while (done < data.size())
-    {
-        const size_t left = data.size() - done;
-        const DWORD want = static_cast<DWORD>(left > (16u << 20) ? (16u << 20) : left);
-        DWORD put = 0;
-        if (!WriteFile(h, data.data() + done, want, &put, nullptr) || put == 0) break;
-        done += put;
-    }
-    CloseHandle(h);
-    if (done != data.size() ||
-        !MoveFileExW(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING))
-    {
-        DeleteFileW(tmp.c_str());
-        return false;
-    }
-    return true;
+    return mixednuts::file::WriteAll(path, data, g_origCreateFileW);
 }
-
-// 目印用。サイズと更新日時が変われば、Yumia ツールで Mod が入れ替わったとみなす
-std::string Stamp(const std::wstring& path)
-{
-    WIN32_FILE_ATTRIBUTE_DATA fa{};
-    if (!GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &fa)) return "missing";
-    char buf[64];
-    sprintf_s(buf, "%lu:%lu:%lu:%lu", fa.nFileSizeHigh, fa.nFileSizeLow,
-              fa.ftLastWriteTime.dwHighDateTime, fa.ftLastWriteTime.dwLowDateTime);
-    return buf;
-}
-
-template <class T> T Rd(const uint8_t* p) { T v; memcpy(&v, p, sizeof(v)); return v; }
-template <class T> void Wr(uint8_t* p, T v) { memcpy(p, &v, sizeof(v)); }
 
 // ---- 対応表 -------------------------------------------------------------
 
@@ -257,7 +185,7 @@ bool ReadEntry(const Source& src, uint32_t hash, File& out)
     swprintf_s(name, L"0x%08x.fdata", fd->second);
     const std::wstring path = g_gameDir + L"fdata_package\\" + name;
     HANDLE h = OpenRead(path);
-    if (h == INVALID_HANDLE_VALUE) { Log("[NG] Cannot open %ls", name); return false; }
+    if (h == INVALID_HANDLE_VALUE) { Log("[NG] Cannot open %s", Utf8(name).c_str()); return false; }
 
     bool ok = false;
     uint8_t head[0x30];
@@ -316,7 +244,7 @@ bool ReadEntry(const Source& src, uint32_t hash, File& out)
         ok = good && out.data.size() == usize;
     } while (false);
     CloseHandle(h);
-    if (!ok) Log("[NG] Cannot read 0x%08X from %ls", hash, name);
+    if (!ok) Log("[NG] Cannot read 0x%08X from %s", hash, Utf8(name).c_str());
     return ok;
 }
 
@@ -543,7 +471,7 @@ bool Generate()
     if (!WriteWholeFile(g_cacheDir + name, fdata) || !WriteWholeFile(g_cacheDir + L"root.rdx", rdx) ||
         !WriteWholeFile(g_cacheDir + L"root.rdb", rdb))
     {
-        Log("[NG] Cannot write to %ls", g_cacheDir.c_str());
+        Log("[NG] Cannot write to %s", Utf8(g_cacheDir).c_str());
         return false;
     }
     Log("[OK] Generated the swap data (%zu files, %d Mio models fixed, %zu bytes)",
@@ -587,18 +515,7 @@ bool EnsureCache()
 
 LONG g_state = 0;   // 0=未実行 / 1=成功 / -1=失敗
 
-bool EndsWithNoCase(const wchar_t* s, const wchar_t* suffix)
-{
-    const size_t ls = wcslen(s), lt = wcslen(suffix);
-    if (ls < lt) return false;
-    for (size_t i = 0; i < lt; ++i)
-    {
-        wchar_t a = s[ls - lt + i], b = suffix[i];
-        if (a == L'/') a = L'\\';
-        if (towlower(a) != towlower(b)) return false;
-    }
-    return true;
-}
+using mixednuts::EndsWithPath;
 
 HANDLE WINAPI MyCreateFileW(LPCWSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
                             DWORD disp, DWORD flags, HANDLE tmpl)
@@ -608,9 +525,9 @@ HANDLE WINAPI MyCreateFileW(LPCWSTR name, DWORD access, DWORD share, LPSECURITY_
         const wchar_t* target = nullptr;
         wchar_t fdataName[48];
         swprintf_s(fdataName, L"fdata_package\\0x%08x.fdata", kFdataHash);
-        if (EndsWithNoCase(name, L"fdata_package\\root.rdb")) target = L"root.rdb";
-        else if (EndsWithNoCase(name, L"fdata_package\\root.rdx")) target = L"root.rdx";
-        else if (EndsWithNoCase(name, fdataName)) target = fdataName + 14;
+        if (EndsWithPath(name, L"fdata_package\\root.rdb")) target = L"root.rdb";
+        else if (EndsWithPath(name, L"fdata_package\\root.rdx")) target = L"root.rdx";
+        else if (EndsWithPath(name, fdataName)) target = fdataName + 14;
 
         if (target)
         {
@@ -623,7 +540,8 @@ HANDLE WINAPI MyCreateFileW(LPCWSTR name, DWORD access, DWORD share, LPSECURITY_
                 const std::wstring dst = g_cacheDir + target;
                 HANDLE h = g_origCreateFileW(dst.c_str(), access, share, sa, disp, flags, tmpl);
                 if (h != INVALID_HANDLE_VALUE) return h;
-                Log("[NG] Cannot open the cached %ls; the game uses its own file", target);
+                Log("[NG] Cannot open the cached %s; the game uses its own file",
+                    Utf8(target).c_str());
             }
         }
     }
@@ -637,24 +555,14 @@ bool InstallHook()
     HMODULE k32 = GetModuleHandleW(L"kernel32.dll");
     auto stub = reinterpret_cast<const uint8_t*>(GetProcAddress(k32, "CreateFileW"));
     if (!stub) return false;
-    PVOID* slot = nullptr;
-    if (stub[0] == 0xFF && stub[1] == 0x25)
-        slot = reinterpret_cast<PVOID*>(const_cast<uint8_t*>(stub) + 6 + Rd<int32_t>(stub + 2));
-    else if (stub[0] == 0x48 && stub[1] == 0xFF && stub[2] == 0x25)   // rex.w jmp
-        slot = reinterpret_cast<PVOID*>(const_cast<uint8_t*>(stub) + 7 + Rd<int32_t>(stub + 3));
+    PVOID* slot = mixednuts::iat::FindJumpSlot(stub);
     if (!slot)
     {
         Log("[NG] kernel32!CreateFileW has an unexpected form (%02X %02X %02X); swap disabled",
             stub[0], stub[1], stub[2]);
         return false;
     }
-    DWORD old = 0;
-    if (!VirtualProtect(slot, sizeof(PVOID), PAGE_READWRITE, &old)) return false;
-    g_origCreateFileW = reinterpret_cast<PFN_CreateFileW>(*slot);
-    *slot = reinterpret_cast<PVOID>(&MyCreateFileW);
-    DWORD tmp = 0;
-    VirtualProtect(slot, sizeof(PVOID), old, &tmp);
-    return true;
+    return mixednuts::iat::Swap(slot, reinterpret_cast<PVOID>(&MyCreateFileW), g_origCreateFileW);
 }
 
 // ---- 設定 ---------------------------------------------------------------
@@ -664,66 +572,35 @@ bool InstallHook()
 bool ReadLook(const std::wstring& ini, const wchar_t* key, const wchar_t* def, bool& isOther,
               const wchar_t* other, const wchar_t* own)
 {
-    wchar_t buf[32]{};
-    GetPrivateProfileStringW(L"Swap", key, def, buf, 32, ini.c_str());
-    // 前後の空白とコメントを落とす
-    wchar_t* s = buf;
-    while (*s == L' ' || *s == L'\t') ++s;
-    wchar_t* e = s;
-    while (*e && *e != L' ' && *e != L'\t' && *e != L';' && *e != L'#') ++e;
-    *e = 0;
-    if (_wcsicmp(s, L"mio") == 0 || _wcsicmp(s, L"mayu") == 0)
+    const std::wstring s = mixednuts::ini::String(ini, L"Swap", key, def);
+    if (_wcsicmp(s.c_str(), L"mio") == 0 || _wcsicmp(s.c_str(), L"mayu") == 0)
     {
-        isOther = _wcsicmp(s, other) == 0;
+        isOther = _wcsicmp(s.c_str(), other) == 0;
         return true;
     }
-    Log("[NG] [Swap] %ls=%ls is not mio or mayu; keeping the original look (%ls)", key, s, own);
+    Log("[NG] [Swap] %s=%s is not mio or mayu; keeping the original look (%s)",
+        Utf8(key).c_str(), Utf8(s).c_str(), Utf8(own).c_str());
     isOther = false;
     return false;
 }
 
 void LoadConfig()
 {
-    const std::wstring ini = g_modDir + L"twinswap.ini";
-    g_enabled = GetPrivateProfileIntW(L"General", L"Enabled", 1, ini.c_str()) != 0;
-    g_log     = GetPrivateProfileIntW(L"General", L"Log", 1, ini.c_str()) != 0;
-    ReadLook(ini, L"Main", L"mayu", g_mainMayu, L"mayu", L"mio");
-    ReadLook(ini, L"Sub", L"mio", g_subMio, L"mio", L"mayu");
-}
-
-// ---- XInput の転送 ------------------------------------------------------
-
-void LoadRealXInput()
-{
-    if (g_real) return;
-    wchar_t path[MAX_PATH]{};
-    GetSystemDirectoryW(path, MAX_PATH);
-    wcscat_s(path, L"\\xinput1_4.dll");
-    g_real = LoadLibraryW(path);
-}
-
-FARPROC RealProc(const char* name)
-{
-    LoadRealXInput();
-    return g_real ? GetProcAddress(g_real, name) : nullptr;
+    namespace ini = mixednuts::ini;
+    const std::wstring file = g_modDir + L"twinswap.ini";
+    g_enabled = ini::Bool(file, L"General", L"Enabled", true);
+    mixednuts::log::Open(g_modDir, L"twinswap.log", ini::Bool(file, L"General", L"Log", true));
+    ReadLook(file, L"Main", L"mayu", g_mainMayu, L"mayu", L"mio");
+    ReadLook(file, L"Sub", L"mio", g_subMio, L"mio", L"mayu");
 }
 
 } // namespace
 
 // XInput の関数はどれも整数・ポインタの引数を 8 個以下しか取らず、浮動小数点の
 // 引数も無い。x64 の呼び出し規約では 8 個をそのまま受け渡せば元の関数と同じに
-// 振る舞う。番号だけの関数（100〜）も同じ方法で番号から引いて転送する。
-using Fwd8 = uintptr_t(WINAPI*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t,
-                                uintptr_t, uintptr_t, uintptr_t, uintptr_t);
-
-#define FORWARD(export_name, lookup)                                                       \
-    extern "C" uintptr_t WINAPI export_name(uintptr_t a, uintptr_t b, uintptr_t c,         \
-                                            uintptr_t d, uintptr_t e, uintptr_t f,         \
-                                            uintptr_t g, uintptr_t h)                      \
-    {                                                                                      \
-        static Fwd8 fn = reinterpret_cast<Fwd8>(RealProc(lookup));                         \
-        return fn ? fn(a, b, c, d, e, f, g, h) : ERROR_DEVICE_NOT_CONNECTED;               \
-    }
+// 振る舞う（proxy.hpp）。番号だけの関数（100〜）も同じ方法で番号から引いて転送する。
+#define FORWARD(export_name, lookup) \
+    MIXEDNUTS_FORWARD(export_name, lookup, ERROR_DEVICE_NOT_CONNECTED)
 
 FORWARD(Proxy_XInputGetState, "XInputGetState")
 FORWARD(Proxy_XInputSetState, "XInputSetState")
@@ -747,13 +624,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID)
         DisableThreadLibraryCalls(hModule);
         InitializeCriticalSection(&g_lock);
 
-        wchar_t exe[MAX_PATH]{};
-        GetModuleFileNameW(nullptr, exe, MAX_PATH);
-        g_gameDir.assign(exe);
-        g_gameDir.resize(g_gameDir.find_last_of(L'\\') + 1);
+        g_gameDir  = mixednuts::GameDir();
         g_modDir   = g_gameDir + L"Mods\\twinswap\\";
         g_cacheDir = g_modDir + L"cache\\";
 
+        // 実体の xinput1_4.dll は最初に呼ばれたときに読み込む
+        mixednuts::proxy::SetTarget(L"xinput1_4.dll");
         LoadConfig();
         Log("TwinSwap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
             g_subMio ? "mio" : "mayu");
