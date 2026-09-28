@@ -12,18 +12,18 @@ with Mio at your side, or make both twins Mayu or both Mio, chosen in a config f
 Only the models (face, hair, body and costume) change; animations, voices, subtitles
 and the story stay as they are.
 
-> **2.0.0 から [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+> **2.0.0 から [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
 > （1.0.0 以降）が必要です。** 1.x は `xinput1_4.dll` で単体で動いていましたが、2.0.0 は
 > ローダーのプラグインになりました。
 >
-> **2.0.0 requires [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+> **2.0.0 requires [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
 > (1.0.0 or later).** 1.x ran on its own via `xinput1_4.dll`; 2.0.0 is a plugin for the loader.
 
 ## 導入 / Installation
 
 **ビルドは不要です。**
 
-1. [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+1. [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
    を、その Releases か [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26) からダウンロードして先に導入します。
 2. この Mod を [Releases](../../releases) または
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25)
@@ -32,7 +32,7 @@ and the story stay as they are.
 
 **No build required.**
 
-1. Install [MixedNuts Mod Loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+1. Install [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
    first (download it from its Releases or [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26)).
 2. Download this mod from [Releases](../../releases) or
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25) and
@@ -42,8 +42,8 @@ and the story stay as they are.
 ```
 FatalFrameII/
   FatalFrameII.exe
-  dinput8.dll                                        <- MixedNuts Mod Loader
-  MixedNuts/MixedNutsLoader.dll                      <- MixedNuts Mod Loader
+  dinput8.dll                                        <- MixedNutsModLoader
+  MixedNuts/MixedNutsLoader.dll                      <- MixedNutsModLoader
   MixedNuts/Mods/twinswap/twinswap.dll               <- この Mod / this mod
   MixedNuts/Mods/twinswap/twinswap.ini
   MixedNuts/Mods/twinswap/README.md
@@ -65,15 +65,15 @@ No game files are modified.
 導入の前に、ゲームのルートから古い `xinput1_4.dll` と `Mods\twinswap\` フォルダ（`cache`
 を含む）を削除してください。1.x の `xinput1_4.dll` が残っていると、ローダーは新しい Mod を
 読み込まず、`MixedNuts\loader.log` に `[!!]` で始まるメッセージを書きます。
-Native 120FPS Option（`dinput8.dll` + `Mods\native120fps\`）や Mouse Wheel Camera Speed
+Native120FPSOption（`dinput8.dll` + `Mods\native120fps\`）や MouseWheelCameraSpeed
 （`version.dll` + `Mods\wheelspeed\`）も 1.x を入れている場合は、まとめて更新してください。
 詳しくはローダーの README にあります。`Main` / `Sub` の設定は古い ini から写してかまいません。
 
 Before installing, delete the old `xinput1_4.dll` and the old `Mods\twinswap\` folder
 (including its `cache`) from the game root. If `xinput1_4.dll` from 1.x is still there,
 the loader does not load the new mod and writes a message starting with `[!!]` to
-`MixedNuts\loader.log`. If you also have Native 120FPS Option (`dinput8.dll` +
-`Mods\native120fps\`) or Mouse Wheel Camera Speed (`version.dll` + `Mods\wheelspeed\`)
+`MixedNuts\loader.log`. If you also have Native120FPSOption (`dinput8.dll` +
+`Mods\native120fps\`) or MouseWheelCameraSpeed (`version.dll` + `Mods\wheelspeed\`)
 at 1.x, update them all at once; see the loader's README for details. You may copy your
 `Main` / `Sub` settings from the old ini.
 
@@ -115,9 +115,9 @@ Costumes are paired one-to-one in costume menu order (Mio's nth ↔ Mayu's nth).
 
 ## 他の Mod との併用 / Using it with other mods
 
-- **Native 120FPS Option / Mouse Wheel Camera Speed とは干渉しません。** TwinSwap 2.0.0 を
+- **Native120FPSOption / MouseWheelCameraSpeed とは干渉しません。** TwinSwap 2.0.0 を
   含め、どれも同じローダーの上で動くので、DLL は 1 つを共有し、ぶつかることはありません。
-  **No interference with Native 120FPS Option or Mouse Wheel Camera Speed.** They and
+  **No interference with Native120FPSOption or MouseWheelCameraSpeed.** They and
   TwinSwap 2.0.0 all run on the same loader, so they share one DLL and never conflict.
 - **Yumia fdata tools で入れる Mod と併用できます。** その時点の Mod 込みのデータを元に
   入れ替え用のデータを作り、Mod が変わると次の起動で作り直します。
