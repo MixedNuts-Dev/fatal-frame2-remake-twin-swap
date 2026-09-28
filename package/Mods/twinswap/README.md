@@ -5,6 +5,11 @@ A mod for FATAL FRAME / PROJECT ZERO II: Crimson Butterfly REMAKE.
 
 Created by MixedNuts
 
+**2.0.0 から MixedNuts Mod Loader（1.0.0 以降）が必要です。**
+**2.0.0 requires MixedNuts Mod Loader (1.0.0 or later).**
+
+https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+
 ---
 
 # 日本語
@@ -17,9 +22,15 @@ Created by MixedNuts
 入れ替わるのはモデル（顔・髪・体・衣装）だけです。動き・声・字幕・ストーリーは
 元のままです（例えば、繭の足を引きずる歩き方は、澪の姿になっても同行キャラに残ります）。
 
+2.0.0 は **MixedNuts Mod Loader のプラグイン**です。1.x は `xinput1_4.dll` で単体で
+動いていましたが、2.0.0 からはローダーを別に導入する必要があります。
+
 ## 動作環境
 
 - FATAL FRAME II: Crimson Butterfly REMAKE（Steam 版）
+- **MixedNuts Mod Loader 1.0.0 以降**（別途導入が必要です）
+  https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  （Releases からダウンロードしてください）
 
 ゲームのファイルは一切変更しないため、Steam のファイル整合性チェックに
 引っかかることはありません。
@@ -28,46 +39,74 @@ Created by MixedNuts
 
 | ファイル | 役割 |
 |---|---|
-| `xinput1_4.dll` | 本体 |
-| `Mods\twinswap\twinswap.ini` | 設定ファイル |
-| `Mods\twinswap\README.md` | このファイル |
+| `MixedNuts\Mods\twinswap\twinswap.dll` | 本体 |
+| `MixedNuts\Mods\twinswap\twinswap.ini` | 設定ファイル |
+| `MixedNuts\Mods\twinswap\README.md` | このファイル |
+| `MixedNuts\Mods\twinswap\LICENSE.txt` | ライセンス |
 
-このうち **`xinput1_4.dll` と `Mods` フォルダの 2 つ**をコピーします。
-起動すると `Mods\twinswap\` の中に、ログ `twinswap.log` と、入れ替え用のデータを
-置く `cache` フォルダが作られます。
+**`MixedNuts` フォルダ**をコピーします。ローダーの `MixedNuts` フォルダと中身が合流します。
+起動すると `MixedNuts\Mods\twinswap\` の中にログ `twinswap.log` が作られます。
+入れ替え用のデータは、ローダーが共有の `MixedNuts\cache\fdata_package\` に作ります。
 
 ### 他の Mod との併用
 
 - **Native 120FPS Option / Mouse Wheel Camera Speed とは干渉しません。**
-  あちらは `dinput8.dll` / `version.dll`、こちらは `xinput1_4.dll` を使うので、
-  どの組み合わせでも、どの順番で入れても動作します。`Mods` フォルダは中身が合流するだけです
+  この Mod（2.0.0）を含め、どれも同じローダーの上で動くので、DLL は 1 つを共有し、
+  ぶつかることはありません
 - **Yumia fdata tools で入れる Mod（衣装の改変など）と併用できます。** その時点の
   Mod 込みのデータを元に入れ替え用のデータを作るので、後から Mod を入れ直しても、
   次の起動で自動的に作り直されます
-- ゲームのルートに **別の `xinput1_4.dll` が既にある場合は、上書きしないでください。**
-  他のツールが同じ名前を使っている可能性があります
+- 同じローダーの上で root.rdb / root.rdx を書き換える他の Mod とは、フォルダ名の順
+  （アルファベット順）に順番に適用されます。この Mod は、それより前の Mod が作った結果を
+  元にします
+- ゲームのルートに **ローダー以外の `dinput8.dll` が既にある場合は、上書きしないでください。**
+  ローダーの `dinput8.dll` は `version.dll` か `xinput1_4.dll` に名前を変えて使えます
+  （ローダーの README を参照してください）
 
 ## 導入方法
 
 1. ゲームを終了します
 
-2. 同梱の `xinput1_4.dll` と `Mods` フォルダを、ゲームのルートディレクトリ
-   （`FatalFrameII.exe` と同じ場所）にそのままコピーします
+2. **MixedNuts Mod Loader を先に導入します。** 手順はローダーの README を参照してください
+
+3. この Mod の `MixedNuts` フォルダを、ゲームのルートディレクトリ
+   （`FatalFrameII.exe` と同じ場所）にそのままコピーします。
+   ローダーの `MixedNuts` フォルダと中身が合流します
 
    ```
-   ...\steamapps\common\FatalFrameII\FatalFrameII.exe
-   ...\steamapps\common\FatalFrameII\xinput1_4.dll     ← 追加
-   ...\steamapps\common\FatalFrameII\Mods\twinswap\    ← 追加
+   ...\FatalFrameII\FatalFrameII.exe
+   ...\FatalFrameII\dinput8.dll                                     ← ローダー
+   ...\FatalFrameII\MixedNuts\MixedNutsLoader.dll                   ← ローダー
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.dll            ← この Mod
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.ini            ← この Mod
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.log            ← 起動時に生成
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\root.rdb          ← ローダーが生成
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\root.rdx          ← ローダーが生成
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\0xfffe7510.fdata  ← ローダーが生成
    ```
 
    ゲームフォルダの開き方：Steam ライブラリでタイトルを右クリック →
    **管理** → **ローカルファイルを閲覧**
 
-3. ゲームを起動し、セーブデータをロードしてください
+4. ゲームを起動し、セーブデータをロードしてください
+
+### 1.x から更新する場合
+
+導入の前に、ゲームのルートから古い **`xinput1_4.dll`** と **`Mods\twinswap\` フォルダ**
+（`cache` を含む）を削除してください。1.x の `xinput1_4.dll` が残っていると、ローダーは
+新しい Mod を読み込まず、`MixedNuts\loader.log` に `[!!]` で始まるメッセージを書きます。
+
+Native 120FPS Option（`dinput8.dll` + `Mods\native120fps\`）や Mouse Wheel Camera Speed
+（`version.dll` + `Mods\wheelspeed\`）も 1.x を入れている場合は、まとめて更新してください。
+詳しくはローダーの README にあります。
+
+`Main` / `Sub` の設定は、古い `twinswap.ini` から写してかまいません。
 
 ## 削除方法
 
-`xinput1_4.dll` と `Mods\twinswap` フォルダを削除するだけです。
+`MixedNuts\Mods\twinswap\` フォルダを削除するだけです。ローダーは他の Mod のために
+残しておいてかまいません。すべて外す場合は、ローダー（`dinput8.dll` と `MixedNuts`
+フォルダ）も削除してください。
 ゲームのファイルは一切変更していないため、完全に元に戻ります。
 
 一時的に無効化したい場合は、`twinswap.ini` の `Enabled` を `0` にしてください。
@@ -116,15 +155,17 @@ GitHub の Issue で教えてください。
 - **衣装画面のプレビューも、入れ替えた後の姿で表示されます。** 衣装の名前と
   プレビューの姿が一致しないのは、この Mod の仕様です
 - ゲーム中のムービーは動画ファイルなので、入れ替わりません
-- 入れ替え用のデータ（`Mods\twinswap\cache`、最大で約 90 MB）は、初回の起動時と、
-  設定や Yumia fdata tools の Mod を変えた後の起動時に作り直されます。
-  それ以外の起動では、作ったものをそのまま使います
+- 入れ替え用のデータ（`MixedNuts\cache\fdata_package\`、最大で約 90 MB）は、ローダーが
+  作ります。ゲームのファイル（Yumia fdata tools で入れた Mod を含む）、導入している Mod、
+  その設定のいずれかが変わると、次の起動で自動的に作り直されます。
+  それ以外の起動では、作ったものをそのまま使います。削除してもかまいません
+  （次の起動で作り直されます）
 - ゲームのアップデート後に動かなくなることがあります。その場合、Mod は何もせず
   ゲームは素の状態で動きます。ログに理由が記録されます
 - セーブデータには何も書き込みません。Mod を外すと、元の姿に戻ります
 - ウイルス対策ソフトが誤検知することがあります。ゲームがファイルを開く処理に
   割り込む仕組みのためです。この Mod はネットワーク通信を一切行わず、
-  ファイルを書き込むのも自分のフォルダの中だけです
+  ファイルを書き込むのも `MixedNuts` フォルダの中だけです
 
 ## 免責事項
 
@@ -140,22 +181,43 @@ GitHub の Issue で教えてください。
 
 ## うまく動かないとき
 
-1. `xinput1_4.dll` がゲームのルート（`FatalFrameII.exe` と同じ場所）にあるか。
-   **`Mods` フォルダの中ではありません**
-2. `Mods\twinswap\` の中に `twinswap.ini` があるか。
-   フォルダ名を変更していないか
-3. `Mods\twinswap\` に `twinswap.log` が生成されているか。
-   生成されていなければ `xinput1_4.dll` が読み込まれていません
+1. ローダーが導入されているか。`dinput8.dll` がゲームのルート
+   （`FatalFrameII.exe` と同じ場所）にあり（**`MixedNuts` フォルダの中ではありません**）、
+   `MixedNuts\MixedNutsLoader.dll` があるか
+2. `MixedNuts\loader.log` が生成され、`[OK] twinswap: loaded` の行があるか。
+   `loader.log` が無ければ、ローダーが読み込まれていません。
+   行が無ければ、フォルダ名・ファイル名が `MixedNuts\Mods\twinswap\twinswap.dll` の
+   とおりか確認し、`loader.log` に `[!!]` や `[NG]` の行が無いか見てください
+3. `MixedNuts\Mods\twinswap\` の中に `twinswap.ini` があるか
+4. `MixedNuts\Mods\twinswap\` に `twinswap.log` が生成されているか
 
-ログに次の行が出ていれば正常に適用されています（ログは英語で出力されます）。
+ログに次のような行が出ていれば正常に適用されています（ログは英語で出力されます）。
+
+`twinswap.log`：
 
 ```
-[OK] File hook installed
+TwinSwap 2.0.0  Main=mayu Sub=mio
+[OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
 
-2 回目以降の起動では、2 行目が `[OK] Using the cached swap data` になります。
-不具合を報告するときは、GitHub の Issue で `twinswap.log` を添付してください。
+`MixedNuts\loader.log`：
+
+```
+[OK] twinswap: loaded (1 file patches)
+[OK] File hook installed (...)
+[OK] twinswap: Main=mayu Sub=mio (3 files)
+```
+
+`[OK] Generated the swap data (...)` と `[OK] twinswap: Main=mayu Sub=mio (3 files)` は、
+入れ替え用のデータを作った起動でだけ出ます。2 回目以降の起動では、`loader.log` の
+最後の行が `[OK] Using the cached files (N)` になります。
+
+`Main=mio` / `Sub=mayu`（元のまま）や `Enabled=0` のときは、
+`[OK] Nothing to swap (disabled or Main=mio / Sub=mayu)` と出て、何も登録されません。
+
+不具合を報告するときは、GitHub の Issue で `twinswap.log` と `loader.log` の
+2 つを添付してください。
 
 https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
 
@@ -172,10 +234,13 @@ https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
 顔が消えます。Mod は繭のモデルと同じ構造になるよう、顔を常時表示のグループへ移します
 （ファイルのサイズは変わりません）。
 
-書き換えたデータは Mod 専用のデータファイルにまとめ、それを指すように書き換えた
-索引ファイル（root.rdb / root.rdx）と一緒に `Mods\twinswap\cache` に作ります。
-ゲームが索引ファイルを開くときだけ、キャッシュの方を渡します。元にするのは
-その時点の索引ファイルなので、Yumia fdata tools で入れた Mod はそのまま残ります。
+この Mod は索引ファイル（root.rdb / root.rdx）をローダーに登録します。ゲームが索引
+ファイルを最初に開くとき、ローダーはその時点の索引ファイル（Yumia fdata tools で入れた
+Mod や、先に適用されたローダーの Mod の変更を含む）をこの Mod に渡します。Mod は
+書き換えたデータを Mod 専用のデータファイルにまとめ、それを指すように書き換えた索引
+ファイルを作ります。ローダーはそれらを `MixedNuts\cache\fdata_package\` に保存し、
+ゲームにはそちらを開かせます。ファイルの差し替えそのものはローダーが行います
+（詳しくはローダーの README を参照してください）。
 
 ---
 
@@ -191,9 +256,15 @@ Only the models (face, hair, body and costume) change. Animations, voices, subti
 and the story stay as they are. For example, Mayu's limp remains on the companion
 even when she looks like Mio.
 
+2.0.0 is a **plugin for MixedNuts Mod Loader**. 1.x ran on its own via
+`xinput1_4.dll`; from 2.0.0 the loader must be installed separately.
+
 ## Requirements
 
 - FATAL FRAME II: Crimson Butterfly REMAKE (Steam)
+- **MixedNuts Mod Loader 1.0.0 or later** (installed separately)
+  https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  (download it from its Releases)
 
 No game files are modified, so this will not trip Steam's file integrity verification.
 
@@ -201,47 +272,76 @@ No game files are modified, so this will not trip Steam's file integrity verific
 
 | File | Role |
 |---|---|
-| `xinput1_4.dll` | the mod itself |
-| `Mods\twinswap\twinswap.ini` | configuration |
-| `Mods\twinswap\README.md` | this file |
+| `MixedNuts\Mods\twinswap\twinswap.dll` | the mod itself |
+| `MixedNuts\Mods\twinswap\twinswap.ini` | configuration |
+| `MixedNuts\Mods\twinswap\README.md` | this file |
+| `MixedNuts\Mods\twinswap\LICENSE.txt` | license |
 
-You copy two things: **`xinput1_4.dll` and the `Mods` folder.**
-When the game runs, a log (`twinswap.log`) and a `cache` folder holding the swap
-data are created in `Mods\twinswap\`.
+You copy **the `MixedNuts` folder**; it merges into the loader's `MixedNuts` folder.
+When the game runs, a log (`twinswap.log`) is created in `MixedNuts\Mods\twinswap\`.
+The swap data is generated by the loader in the shared
+`MixedNuts\cache\fdata_package\` folder.
 
 ### Using it with other mods
 
 - **It does not interfere with Native 120FPS Option or Mouse Wheel Camera Speed.**
-  Those use `dinput8.dll` / `version.dll` and this mod uses `xinput1_4.dll`, so any
-  combination works, installed in any order. The `Mods` folders simply merge
+  They and this mod (2.0.0) all run on the same loader, so they share one DLL and
+  never conflict
 - **It works together with mods installed with Yumia fdata tools** (costume edits
   and so on). The swap data is built from the game data as it currently is,
   including those mods, so if you reinstall them it is rebuilt on the next launch
-- If the game folder **already contains a different `xinput1_4.dll`, do not
-  overwrite it.** Another tool may be using the same name
+- Other mods on the same loader that also modify root.rdb / root.rdx are applied
+  one after another in folder-name (alphabetical) order; this mod starts from
+  whatever the previous mods produced
+- If another mod **already uses `dinput8.dll`, do not overwrite it.** The loader's
+  `dinput8.dll` can be renamed to `version.dll` or `xinput1_4.dll` (see the
+  loader's README)
 
 ## Installation
 
 1. Close the game.
 
-2. Copy `xinput1_4.dll` and the `Mods` folder into the game's root directory
-   (the folder containing `FatalFrameII.exe`).
+2. **Install MixedNuts Mod Loader first.** See the loader's README for the steps.
+
+3. Copy this mod's `MixedNuts` folder into the game's root directory (the folder
+   containing `FatalFrameII.exe`). It merges into the loader's `MixedNuts` folder.
 
    ```
-   ...\steamapps\common\FatalFrameII\FatalFrameII.exe
-   ...\steamapps\common\FatalFrameII\xinput1_4.dll     <- added
-   ...\steamapps\common\FatalFrameII\Mods\twinswap\    <- added
+   ...\FatalFrameII\FatalFrameII.exe
+   ...\FatalFrameII\dinput8.dll                                     <- loader
+   ...\FatalFrameII\MixedNuts\MixedNutsLoader.dll                   <- loader
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.dll            <- this mod
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.ini            <- this mod
+   ...\FatalFrameII\MixedNuts\Mods\twinswap\twinswap.log            <- generated at launch
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\root.rdb          <- generated by the loader
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\root.rdx          <- generated by the loader
+   ...\FatalFrameII\MixedNuts\cache\fdata_package\0xfffe7510.fdata  <- generated by the loader
    ```
 
    To open the game folder: right-click the title in your Steam library →
    **Manage** → **Browse local files**
 
-3. Launch the game and load a save.
+4. Launch the game and load a save.
+
+### Upgrading from 1.x
+
+Before installing, delete the old **`xinput1_4.dll`** and the old
+**`Mods\twinswap\` folder** (including its `cache`) from the game root. If
+`xinput1_4.dll` from 1.x is still there, the loader does not load the new mod and
+writes a message starting with `[!!]` to `MixedNuts\loader.log`.
+
+If you also have Native 120FPS Option (`dinput8.dll` + `Mods\native120fps\`) or
+Mouse Wheel Camera Speed (`version.dll` + `Mods\wheelspeed\`) at 1.x, update them
+all at once. The loader's README has the details.
+
+You may copy your `Main` / `Sub` settings from the old `twinswap.ini`.
 
 ## Uninstallation
 
-Delete `xinput1_4.dll` and the `Mods\twinswap` folder. No game files are modified,
-so removal restores the original state completely.
+Delete the `MixedNuts\Mods\twinswap\` folder. The loader can stay for other mods;
+to remove everything, delete the loader too (`dinput8.dll` and the `MixedNuts`
+folder). No game files are modified, so removal restores the original state
+completely.
 
 To disable temporarily, set `Enabled` to `0` in `twinswap.ini`.
 
@@ -291,15 +391,17 @@ GitHub Issue.
 - **The preview in the costume menu also shows the swapped look.** The costume name
   and the preview not matching is expected with this mod
 - The game's cutscenes are video files, so they are not swapped
-- The swap data (`Mods\twinswap\cache`, up to about 90 MB) is built on the first
-  launch, and again after you change the settings or the mods installed with
-  Yumia fdata tools. Other launches reuse it
+- The swap data (`MixedNuts\cache\fdata_package\`, up to about 90 MB) is generated
+  by the loader. It is rebuilt automatically on the next launch when the game's
+  files (including mods installed with Yumia fdata tools), the installed mods or
+  their settings change; other launches reuse it. It is safe to delete (it is
+  rebuilt on the next launch)
 - A game update may break this mod. In that case the mod does nothing and the game
   runs unmodified; the reason is written to the log
 - Nothing is written to your save data. Removing the mod restores the original looks
 - Antivirus software may flag this mod because it intercepts the game opening its
   files. It performs no network activity, and the only files it writes are inside
-  its own folder
+  the `MixedNuts` folder
 
 ## Disclaimer
 
@@ -315,22 +417,44 @@ loss of save data, game malfunction, or any other problem. Use it at your own ri
 
 ## If it doesn't work
 
-1. Is `xinput1_4.dll` in the game's root folder (next to `FatalFrameII.exe`)?
-   **It does not go inside the `Mods` folder**
-2. Is `twinswap.ini` present in `Mods\twinswap\`?
-   Has the folder name been changed?
-3. Has `twinswap.log` been created in `Mods\twinswap\`?
-   If not, `xinput1_4.dll` is not being loaded
+1. Is the loader installed? `dinput8.dll` must be in the game's root folder (next
+   to `FatalFrameII.exe`; **not inside the `MixedNuts` folder**), and
+   `MixedNuts\MixedNutsLoader.dll` must be present
+2. Has `MixedNuts\loader.log` been created, and does it contain
+   `[OK] twinswap: loaded`? If `loader.log` is missing, the loader is not being
+   loaded. If the line is missing, check that the folder and file names match
+   `MixedNuts\Mods\twinswap\twinswap.dll`, and look for `[!!]` or `[NG]` lines in
+   `loader.log`
+3. Is `twinswap.ini` present in `MixedNuts\Mods\twinswap\`?
+4. Has `twinswap.log` been created in `MixedNuts\Mods\twinswap\`?
 
-If the log contains lines like these, the mod is working:
+If the logs contain lines like these, the mod is working:
+
+`twinswap.log`:
 
 ```
-[OK] File hook installed
+TwinSwap 2.0.0  Main=mayu Sub=mio
+[OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
 
-On later launches the second line reads `[OK] Using the cached swap data`.
-When reporting a problem, please open a GitHub Issue and attach `twinswap.log`.
+`MixedNuts\loader.log`:
+
+```
+[OK] twinswap: loaded (1 file patches)
+[OK] File hook installed (...)
+[OK] twinswap: Main=mayu Sub=mio (3 files)
+```
+
+`[OK] Generated the swap data (...)` and `[OK] twinswap: Main=mayu Sub=mio (3 files)`
+appear only on a launch where the swap data is built. On later launches the last
+line of `loader.log` reads `[OK] Using the cached files (N)`.
+
+With `Main=mio` / `Sub=mayu` (vanilla) or `Enabled=0`, the log says
+`[OK] Nothing to swap (disabled or Main=mio / Sub=mayu)` and nothing is registered.
+
+When reporting a problem, please open a GitHub Issue and attach both `twinswap.log`
+and `loader.log`.
 
 https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
 
@@ -349,11 +473,13 @@ models lose everything of the face but the eyeballs. The mod moves the face into
 the always-visible group, the same layout Mayu's models use (file sizes do not
 change).
 
-The rewritten data goes into a data file of the mod's own, created in
-`Mods\twinswap\cache` together with copies of the index files (root.rdb /
-root.rdx) rewritten to point at it. Only when the game opens the index files does
-the mod hand it the cached ones. They are built from the index files as they are
-at that moment, so mods installed with Yumia fdata tools stay in place.
+The mod registers the index files (root.rdb / root.rdx) with the loader. When the
+game first opens either of them, the loader hands the mod the current index files
+(including mods installed with Yumia fdata tools and the changes of earlier loader
+mods). The mod puts the rewritten data into a data file of its own and builds index
+files rewritten to point at it; the loader stores them in
+`MixedNuts\cache\fdata_package\` and has the game open those instead. The file
+redirect itself is done by the loader (details in the loader's README).
 
 ---
 

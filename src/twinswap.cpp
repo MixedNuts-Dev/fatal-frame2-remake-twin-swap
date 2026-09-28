@@ -3,8 +3,8 @@
 // Licensed under the MIT License. See LICENSE for details.
 //
 // 操作キャラ（澪）と同行キャラ（繭）の見た目を ini の指定で入れ替える。
-// ゲームのルートに xinput1_4.dll として置くと自動的にロードされ、
-// XInput 本来の機能は System32 の実体へ転送する。
+// MixedNuts Mod Loader のプラグインとして MixedNuts\Mods\twinswap\ に置く
+// （2.0.0 から。1.x は xinput1_4.dll のプロキシで単独で動いていた）。
 //
 // 仕組み:
 //   キャラの枠（衣装ごとに高精細・軽量の 2 つ）は、2 つの kidsobjdb（0x2082ad97 /
@@ -18,15 +18,10 @@
 //   グループを空にする（grp）。どちらもサイズは変わらない。
 //
 //   改変したファイルは Mod 専用の fdata にまとめ、root.rdb / root.rdx をそれを指す
-//   ように書き換えたものと一緒に、Mods\twinswap\cache に作る。ゲームがこの 3 つを
-//   開くときだけ、CreateFileW のフックでキャッシュへ差し替える。元にするのは
-//   fdata_package にある現在の root.rdb / root.rdx なので、Yumia ツールで入れた
-//   他の Mod（スカート丈など）はそのまま残る。ゲームのファイルは一切変更しない。
-//
-// フックは exe ではなく kernel32 の輸入テーブル（kernel32!CreateFileW が飛ぶ先）に
-// 掛ける。Native 120FPS Option のローダが exe の輸入テーブルの CreateFileW を
-// 起動直後に何度も掛け直すので、同じ場所に掛けると互いを「元の関数」として保存し
-// 合って無限再帰になる。kernel32 側なら、そちらのフックの先で呼ばれるので干渉しない。
+//   ように書き換える。この 3 つはローダーのファイル改変として返し、キャッシュと
+//   差し替えはローダーが行う。元にするのは現在の root.rdb / root.rdx（Yumia ツールで
+//   入れた Mod や、先に読み込まれた Mod の改変を含む）なので、それらはそのまま残る。
+//   ゲームのファイルは一切変更しない。
 //
 // ログは英語で書く（利用者が自分で状況を判断できるように）。コメントは日本語。
 
@@ -38,13 +33,11 @@
 #include <vector>
 #include <unordered_map>
 
+#include <mixednuts/plugin.h>
 #include <mixednuts/bytes.hpp>
 #include <mixednuts/file.hpp>
-#include <mixednuts/iat.hpp>
 #include <mixednuts/ini.hpp>
 #include <mixednuts/log.hpp>
-#include <mixednuts/path.hpp>
-#include <mixednuts/proxy.hpp>
 
 #include "inflate.hpp"
 
@@ -55,44 +48,31 @@ using mixednuts::Rd;
 using mixednuts::Utf8;
 using mixednuts::Wr;
 using mixednuts::file::ReadAt;
-using mixednuts::file::Stamp;   // サイズと更新日時が変われば、Yumia ツールで Mod が入れ替わったとみなす
 
-constexpr char     kVersion[]  = "1.0.0";
-constexpr char     kCacheTag[] = "twinswap-cache-v1";   // 生成ロジックを変えたら上げる
+constexpr char     kVersion[]  = "2.0.0";
+constexpr char     kCacheTag[] = "twinswap-v2";   // 生成ロジックを変えたら上げる
 constexpr uint32_t kFdataHash  = 0xFFFE7510;
 
-std::wstring g_gameDir;
-std::wstring g_modDir;
-std::wstring g_cacheDir;
+const wchar_t kRdb[] = L"fdata_package\\root.rdb";
+const wchar_t kRdx[] = L"fdata_package\\root.rdx";
 
 bool g_enabled = true;
 bool g_mainMayu = true;   // 操作キャラの見た目
 bool g_subMio   = true;   // 同行キャラの見た目
 
-// ---- CreateFileW のフック -----------------------------------------------
-
-using PFN_CreateFileW = HANDLE(WINAPI*)(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES,
-                                        DWORD, DWORD, HANDLE);
-PFN_CreateFileW  g_origCreateFileW = nullptr;
-CRITICAL_SECTION g_lock{};
-
 // ---- ファイル入出力 -----------------------------------------------------
 //
-// Mod 自身のファイル操作は、フックを通らない本来の関数で行う
+// 生成はローダーから呼ばれ、ファイルはローダーの入出力を通して読み書きする。
+// fdata は大きいので丸ごとは読まず、現在の実体のパスを聞いて部分的に読む
+// （先に読み込まれた Mod が足した fdata も同じように読める）。
+
+const MixedNutsApi*     g_api = nullptr;
+const MixedNutsPatchIo* g_io  = nullptr;   // 生成中だけ有効
+std::wstring            g_modDir;
 
 HANDLE OpenRead(const std::wstring& path)
 {
-    return mixednuts::file::OpenRead(path, g_origCreateFileW);
-}
-
-bool ReadWholeFile(const std::wstring& path, std::vector<uint8_t>& out)
-{
-    return mixednuts::file::ReadAll(path, out, (1ull << 30) - 1, g_origCreateFileW);
-}
-
-bool WriteWholeFile(const std::wstring& path, const std::vector<uint8_t>& data)
-{
-    return mixednuts::file::WriteAll(path, data, g_origCreateFileW);
+    return mixednuts::file::OpenRead(path, g_api->CreateFileOriginal);
 }
 
 // ---- 対応表 -------------------------------------------------------------
@@ -183,8 +163,9 @@ bool ReadEntry(const Source& src, uint32_t hash, File& out)
 
     wchar_t name[32];
     swprintf_s(name, L"0x%08x.fdata", fd->second);
-    const std::wstring path = g_gameDir + L"fdata_package\\" + name;
-    HANDLE h = OpenRead(path);
+    const std::wstring rel = std::wstring(L"fdata_package\\") + name;
+    const wchar_t* path = g_io->Path(g_io->self, rel.c_str());
+    HANDLE h = path ? OpenRead(path) : INVALID_HANDLE_VALUE;
     if (h == INVALID_HANDLE_VALUE) { Log("[NG] Cannot open %s", Utf8(name).c_str()); return false; }
 
     bool ok = false;
@@ -358,12 +339,20 @@ bool FaceFix(File& g1m, File& grp)
 
 // ---- 生成 ---------------------------------------------------------------
 
+// 現在の内容を丸ごと読む（先に読み込まれた Mod の改変を含む）
+bool ReadCurrent(const wchar_t* rel, std::vector<uint8_t>& out)
+{
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    if (!g_io->Read(g_io->self, rel, &data, &size)) return false;
+    out.assign(data, data + size);
+    return true;
+}
+
 bool Generate()
 {
-    const std::wstring pkg = g_gameDir + L"fdata_package\\";
     Source src;
-    if (!ReadWholeFile(pkg + L"root.rdb", src.rdb) || !ReadWholeFile(pkg + L"root.rdx", src.rdx) ||
-        src.rdx.size() % 8)
+    if (!ReadCurrent(kRdb, src.rdb) || !ReadCurrent(kRdx, src.rdx) || src.rdx.size() % 8)
     {
         Log("[NG] Cannot read root.rdb / root.rdx");
         return false;
@@ -465,13 +454,13 @@ bool Generate()
     Wr<int16_t>(&rdx[rdx.size() - 6], -1);
     Wr<uint32_t>(&rdx[rdx.size() - 4], kFdataHash);
 
-    wchar_t name[32];
-    swprintf_s(name, L"0x%08x.fdata", kFdataHash);
-    CreateDirectoryW(g_cacheDir.c_str(), nullptr);
-    if (!WriteWholeFile(g_cacheDir + name, fdata) || !WriteWholeFile(g_cacheDir + L"root.rdx", rdx) ||
-        !WriteWholeFile(g_cacheDir + L"root.rdb", rdb))
+    wchar_t name[48];
+    swprintf_s(name, L"fdata_package\\0x%08x.fdata", kFdataHash);
+    if (!g_io->Write(g_io->self, name, fdata.data(), fdata.size()) ||
+        !g_io->Write(g_io->self, kRdx, rdx.data(), rdx.size()) ||
+        !g_io->Write(g_io->self, kRdb, rdb.data(), rdb.size()))
     {
-        Log("[NG] Cannot write to %s", Utf8(g_cacheDir).c_str());
+        Log("[NG] Cannot hand the swap data to the loader");
         return false;
     }
     Log("[OK] Generated the swap data (%zu files, %d Mio models fixed, %zu bytes)",
@@ -479,90 +468,22 @@ bool Generate()
     return true;
 }
 
-std::string TagText()
+// ゲームが root.rdb / root.rdx を初めて開いたときにローダーから呼ばれる。
+// キャッシュが有効な間は呼ばれない。
+int GenerateSwap(void*, const MixedNutsPatchIo* io, char* note, size_t cap)
 {
-    const std::wstring pkg = g_gameDir + L"fdata_package\\";
-    return std::string(kCacheTag) + " main=" + (g_mainMayu ? "mayu" : "mio") +
-           " sub=" + (g_subMio ? "mio" : "mayu") + " rdb=" + Stamp(pkg + L"root.rdb") +
-           " rdx=" + Stamp(pkg + L"root.rdx");
-}
-
-// 生成済みで元のファイルも設定も変わっていなければ、そのまま使う
-bool EnsureCache()
-{
-    const std::wstring tagPath = g_cacheDir + L"cache.tag";
-    const std::string want = TagText();
-    {
-        std::vector<uint8_t> have;
-        wchar_t name[32];
-        swprintf_s(name, L"0x%08x.fdata", kFdataHash);
-        if (ReadWholeFile(tagPath, have) && std::string(have.begin(), have.end()) == want &&
-            GetFileAttributesW((g_cacheDir + name).c_str()) != INVALID_FILE_ATTRIBUTES &&
-            GetFileAttributesW((g_cacheDir + L"root.rdb").c_str()) != INVALID_FILE_ATTRIBUTES &&
-            GetFileAttributesW((g_cacheDir + L"root.rdx").c_str()) != INVALID_FILE_ATTRIBUTES)
-        {
-            Log("[OK] Using the cached swap data");
-            return true;
-        }
-    }
-    DeleteFileW(tagPath.c_str());
     const DWORD t0 = GetTickCount();
-    if (!Generate()) return false;
-    WriteWholeFile(tagPath, std::vector<uint8_t>(want.begin(), want.end()));
+    g_io = io;
+    const bool ok = Generate();
+    g_io = nullptr;
+    if (!ok)
+    {
+        sprintf_s(note, cap, "could not build the swap data (see twinswap.log)");
+        return 0;
+    }
     Log("     (took %lu ms)", GetTickCount() - t0);
-    return true;
-}
-
-LONG g_state = 0;   // 0=未実行 / 1=成功 / -1=失敗
-
-using mixednuts::EndsWithPath;
-
-HANDLE WINAPI MyCreateFileW(LPCWSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
-                            DWORD disp, DWORD flags, HANDLE tmpl)
-{
-    if (name && (access & GENERIC_READ) && !(access & GENERIC_WRITE))
-    {
-        const wchar_t* target = nullptr;
-        wchar_t fdataName[48];
-        swprintf_s(fdataName, L"fdata_package\\0x%08x.fdata", kFdataHash);
-        if (EndsWithPath(name, L"fdata_package\\root.rdb")) target = L"root.rdb";
-        else if (EndsWithPath(name, L"fdata_package\\root.rdx")) target = L"root.rdx";
-        else if (EndsWithPath(name, fdataName)) target = fdataName + 14;
-
-        if (target)
-        {
-            EnterCriticalSection(&g_lock);
-            if (g_state == 0) g_state = EnsureCache() ? 1 : -1;
-            const bool ok = (g_state == 1);
-            LeaveCriticalSection(&g_lock);
-            if (ok)
-            {
-                const std::wstring dst = g_cacheDir + target;
-                HANDLE h = g_origCreateFileW(dst.c_str(), access, share, sa, disp, flags, tmpl);
-                if (h != INVALID_HANDLE_VALUE) return h;
-                Log("[NG] Cannot open the cached %s; the game uses its own file",
-                    Utf8(target).c_str());
-            }
-        }
-    }
-    return g_origCreateFileW(name, access, share, sa, disp, flags, tmpl);
-}
-
-// kernel32!CreateFileW は「jmp [kernel32 の輸入テーブル]」だけの中継なので、
-// その輸入テーブルの枠を差し替える
-bool InstallHook()
-{
-    HMODULE k32 = GetModuleHandleW(L"kernel32.dll");
-    auto stub = reinterpret_cast<const uint8_t*>(GetProcAddress(k32, "CreateFileW"));
-    if (!stub) return false;
-    PVOID* slot = mixednuts::iat::FindJumpSlot(stub);
-    if (!slot)
-    {
-        Log("[NG] kernel32!CreateFileW has an unexpected form (%02X %02X %02X); swap disabled",
-            stub[0], stub[1], stub[2]);
-        return false;
-    }
-    return mixednuts::iat::Swap(slot, reinterpret_cast<PVOID>(&MyCreateFileW), g_origCreateFileW);
+    sprintf_s(note, cap, "Main=%s Sub=%s", g_mainMayu ? "mayu" : "mio", g_subMio ? "mio" : "mayu");
+    return 1;
 }
 
 // ---- 設定 ---------------------------------------------------------------
@@ -596,53 +517,41 @@ void LoadConfig()
 
 } // namespace
 
-// XInput の関数はどれも整数・ポインタの引数を 8 個以下しか取らず、浮動小数点の
-// 引数も無い。x64 の呼び出し規約では 8 個をそのまま受け渡せば元の関数と同じに
-// 振る舞う（proxy.hpp）。番号だけの関数（100〜）も同じ方法で番号から引いて転送する。
-#define FORWARD(export_name, lookup) \
-    MIXEDNUTS_FORWARD(export_name, lookup, ERROR_DEVICE_NOT_CONNECTED)
+// MixedNuts Mod Loader から、ゲームのコードが動く前に呼ばれる。
+// 入れ替えるならファイル改変を登録する（生成はゲームが root.rdb / rdx を開いたとき）。
+MIXEDNUTS_PLUGIN_EXPORT int WINAPI MixedNutsPluginInit(const MixedNutsApi* api)
+{
+    if (!api || api->version < MIXEDNUTS_API_VERSION) return 0;
+    g_api    = api;
+    g_modDir = api->pluginDir;
+    LoadConfig();
+    Log("TwinSwap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
+        g_subMio ? "mio" : "mayu");
 
-FORWARD(Proxy_XInputGetState, "XInputGetState")
-FORWARD(Proxy_XInputSetState, "XInputSetState")
-FORWARD(Proxy_XInputGetCapabilities, "XInputGetCapabilities")
-FORWARD(Proxy_XInputEnable, "XInputEnable")
-FORWARD(Proxy_XInputGetBatteryInformation, "XInputGetBatteryInformation")
-FORWARD(Proxy_XInputGetKeystroke, "XInputGetKeystroke")
-FORWARD(Proxy_XInputGetAudioDeviceIds, "XInputGetAudioDeviceIds")
-FORWARD(Proxy_Ordinal100, MAKEINTRESOURCEA(100))
-FORWARD(Proxy_Ordinal101, MAKEINTRESOURCEA(101))
-FORWARD(Proxy_Ordinal102, MAKEINTRESOURCEA(102))
-FORWARD(Proxy_Ordinal103, MAKEINTRESOURCEA(103))
-FORWARD(Proxy_Ordinal104, MAKEINTRESOURCEA(104))
-FORWARD(Proxy_Ordinal108, MAKEINTRESOURCEA(108))
-FORWARD(Proxy_Ordinal109, MAKEINTRESOURCEA(109))
+    // 見た目が元のままなら何もしない
+    if (!g_enabled || (!g_mainMayu && !g_subMio))
+    {
+        Log("[OK] Nothing to swap (disabled or Main=mio / Sub=mayu)");
+        return 1;
+    }
+
+    // tag には結果に影響する設定も入れる。変わればローダーが作り直す
+    static char tag[64];
+    sprintf_s(tag, "%s main=%s sub=%s", kCacheTag, g_mainMayu ? "mayu" : "mio",
+              g_subMio ? "mio" : "mayu");
+    static const wchar_t* const targets[] = { kRdb, kRdx, nullptr };
+    const MixedNutsPatch patch{ targets, tag, &GenerateSwap, nullptr };
+    if (!api->RegisterPatch(api, &patch))
+    {
+        Log("[NG] Could not register with the loader; the game runs unmodified");
+        return 0;
+    }
+    Log("[OK] Registered with the loader");
+    return 1;
+}
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID)
 {
-    if (reason == DLL_PROCESS_ATTACH)
-    {
-        DisableThreadLibraryCalls(hModule);
-        InitializeCriticalSection(&g_lock);
-
-        g_gameDir  = mixednuts::GameDir();
-        g_modDir   = g_gameDir + L"Mods\\twinswap\\";
-        g_cacheDir = g_modDir + L"cache\\";
-
-        // 実体の xinput1_4.dll は最初に呼ばれたときに読み込む
-        mixednuts::proxy::SetTarget(L"xinput1_4.dll");
-        LoadConfig();
-        Log("TwinSwap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
-            g_subMio ? "mio" : "mayu");
-
-        // 見た目が元のままなら何もしない
-        if (!g_enabled || (!g_mainMayu && !g_subMio))
-            Log("[OK] Nothing to swap (disabled or Main=mio / Sub=mayu)");
-        else if (GetFileAttributesW(g_modDir.c_str()) == INVALID_FILE_ATTRIBUTES)
-            ;   // Mods\twinswap が無い（DLL だけ残っている）
-        else if (InstallHook())
-            Log("[OK] File hook installed");
-        else
-            Log("[NG] Could not install the file hook; the game runs unmodified");
-    }
+    if (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(hModule);
     return TRUE;
 }

@@ -10,23 +10,28 @@ if errorlevel 1 exit /b 1
 set "ROOT=%~dp0"
 set "OUT=%ROOT%dist"
 set "OBJ=%ROOT%obj"
-set "COMMON=%ROOT%mod-loader\common"
-if not exist "%COMMON%\mixednuts\log.hpp" (echo [NG] mod-loader submodule is missing. Run: git submodule update --init & exit /b 1)
-if not exist "%OUT%\Mods\twinswap" mkdir "%OUT%\Mods\twinswap"
+set "LOADER=%ROOT%mod-loader"
+rem set MIXEDNUTS_LOADER to build against a local checkout of mod-loader instead
+if defined MIXEDNUTS_LOADER set "LOADER=%MIXEDNUTS_LOADER%"
+if not exist "%LOADER%\api\mixednuts\plugin.h" (echo [NG] mod-loader submodule is missing or old. Run: git submodule update --init & exit /b 1)
+rem a MixedNuts Mod Loader plugin: MixedNuts\Mods\twinswap\twinswap.dll
+set "DST=%OUT%\MixedNuts\Mods\twinswap"
+if exist "%OUT%" rmdir /s /q "%OUT%"
+mkdir "%DST%"
 if not exist "%OBJ%" mkdir "%OBJ%"
 
-echo === xinput1_4.dll ===
-cl /nologo /LD /O2 /EHsc /MT /W3 /std:c++17 /utf-8 /DNDEBUG /I"%COMMON%" /Fo"%OBJ%\t_" /Fe"%OUT%\xinput1_4.dll" "%ROOT%src\twinswap.cpp" /link /DEF:"%ROOT%src\xinput1_4.def" /OPT:REF /OPT:ICF
+echo === plugin (twinswap.dll) ===
+cl /nologo /LD /O2 /EHsc /MT /W3 /std:c++17 /utf-8 /DNDEBUG /I"%LOADER%\common" /I"%LOADER%\api" /Fo"%OBJ%\t_" /Fe"%DST%\twinswap.dll" "%ROOT%src\twinswap.cpp" /link /OPT:REF /OPT:ICF
 if errorlevel 1 exit /b 1
 
 echo === copying package files ===
-copy /y "%ROOT%package\Mods\twinswap\twinswap.ini" "%OUT%\Mods\twinswap\" >nul
-copy /y "%ROOT%package\Mods\twinswap\README.md" "%OUT%\Mods\twinswap\" >nul
-copy /y "%ROOT%LICENSE" "%OUT%\Mods\twinswap\LICENSE.txt" >nul
+copy /y "%ROOT%package\Mods\twinswap\twinswap.ini" "%DST%\" >nul
+copy /y "%ROOT%package\Mods\twinswap\README.md" "%DST%\" >nul
+copy /y "%ROOT%LICENSE" "%DST%\LICENSE.txt" >nul
 
 rem import library / export file are build by-products
-if exist "%OUT%\xinput1_4.lib" del "%OUT%\xinput1_4.lib"
-if exist "%OUT%\xinput1_4.exp" del "%OUT%\xinput1_4.exp"
+if exist "%DST%\twinswap.lib" del "%DST%\twinswap.lib"
+if exist "%DST%\twinswap.exp" del "%DST%\twinswap.exp"
 
 echo.
 echo === done: %OUT% ===
