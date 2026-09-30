@@ -165,7 +165,8 @@ GitHub の Issue で教えてください。
 
 - **衣装画面のプレビューも、入れ替えた後の姿で表示されます。** 衣装の名前と
   プレビューの姿が一致しないのは、この Mod の仕様です
-- ゲーム中のムービーは動画ファイルなので、入れ替わりません
+- ゲーム内で描画される場面（会話やイベントのシーンなど）には、入れ替えが反映されます。
+  ただし一部のムービーは録画済みの動画ファイルなので、元の姿のまま流れます
 - **紗重・八重の赤い縄は、歩くと着物を少し突き抜けることがあります。** 紗重・八重本来の
   体の動きに合わせて作られた部品のためです
 - `sae` / `yae` を選ぶと、ゲームに本来登場する紗重・八重（敵やイベントの姿）も、赤い縄が
@@ -418,7 +419,8 @@ Sae and Yae were checked walking around (including the red rope) with
 
 - **The preview in the costume menu also shows the swapped look.** The costume name
   and the preview not matching is expected with this mod
-- The game's cutscenes are video files, so they are not swapped
+- Scenes rendered in the game (conversations, event scenes and so on) show the swap.
+  Some movies, however, are pre-recorded video files and play with the original looks
 - **Sae's and Yae's red rope may clip slightly through the kimono while walking.** It
   was made for their own body movement
 - With `sae` / `yae` selected, the Sae and Yae who appear in the game itself (as an
