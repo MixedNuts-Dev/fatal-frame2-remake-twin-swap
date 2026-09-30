@@ -1,7 +1,7 @@
 # 姉妹スワップの参照実装。DLL と同じ手順で root.rdb / root.rdx / fdata を作る。
 # DLL の出力とバイト単位で突き合わせるのと、DLL を作る前のゲーム内確認に使う。
 #
-#   python twinswap_ref.py build <出力フォルダ> <main: mio|mayu> <sub: mio|mayu>
+#   python twinswap_ref.py build <出力フォルダ> <main: mio|mayu|sae|yae> <sub: 同左>
 #       fdata_package の現在の root.rdb / root.rdx（= 他の Mod を含む）を元に、出力フォルダへ 3 ファイルを作る
 #   python twinswap_ref.py install <main> <sub>
 #       検証用。バックアップ（スカート丈 Mod だけの状態）を元に作り、ゲームのフォルダへ直接書き込む
@@ -98,14 +98,23 @@ def find_unique(data, v):
     return data.find(b)
 
 
+# 紗重・八重は 1 着だけ（高精細・軽量の区別も無い）。どの衣装でもこの定義を指す
+SAE_DEF = 0xaa5cc277   # g1m 0xe92e0aff。敵として配置される方
+YAE_DEF = 0x47095b30   # g1m 0x9649abe6。イベントだけに出る方
+
+
+def def_for(look, i, k):
+    return {'mio': MIO_DEFS[i][k], 'mayu': MAYU_DEFS[i][k], 'sae': SAE_DEF, 'yae': YAE_DEF}[look]
+
+
 def assign_refs(db, main, sub):
     """澪の枠は main の見た目、繭の枠は sub の見た目のモデル定義を指すようにする"""
     db = bytearray(db)
     pos = {v: find_unique(db, v) for pair in MIO_DEFS + MAYU_DEFS for v in pair}
-    for mio, mayu in zip(MIO_DEFS, MAYU_DEFS):
+    for i, (mio, mayu) in enumerate(zip(MIO_DEFS, MAYU_DEFS)):
         for k in range(2):
-            struct.pack_into('<I', db, pos[mio[k]], (mayu if main == 'mayu' else mio)[k])
-            struct.pack_into('<I', db, pos[mayu[k]], (mio if sub == 'mio' else mayu)[k])
+            struct.pack_into('<I', db, pos[mio[k]], def_for(main, i, k))
+            struct.pack_into('<I', db, pos[mayu[k]], def_for(sub, i, k))
     return bytes(db)
 
 
@@ -122,13 +131,16 @@ def g1mg_section(data, typ):
     raise ValueError('no section %x' % typ)
 
 
-def face_fix(g1m, grp):
-    """顔のグループ（grp の最後、5526a88f）の LOD エントリを、常時表示のグループ 0 の直後へ移す。
-    grp ではグループ 0 を広げ、顔のグループは名前を残したまま空（0 項目・0 エントリ）にする。
+def merge_groups(g1m, grp, names):
+    """指定した名前のグループの LOD エントリを、常時表示のグループ 0 の直後へ移す。
+    grp ではグループ 0 をその分広げ、移したグループは名前を残したまま空（0 項目・0 エントリ）にする。
     どちらもサイズは変わらない。"""
     rows = [list(struct.unpack_from('<8I', grp, i)) for i in range(0, len(grp), 32)]
-    assert len(grp) % 32 == 0 and rows[-1][0] == FACE_GROUP, 'face group is not last'
-    nents = [r[5] for r in rows]
+    assert len(grp) % 32 == 0
+    move = [i for i, r in enumerate(rows) if r[0] in names]
+    assert move and 0 not in move, 'groups not found'
+    for i in move:
+        assert rows[i][3] == rows[i][4] == rows[i][6] == rows[i][7] == 0, 'unexpected grp fields'
     g1m = bytearray(g1m)
     p = g1mg_section(g1m, 0x10009)
     q, ents = p + 0x30, []
@@ -136,18 +148,35 @@ def face_fix(g1m, grp):
         n = struct.unpack_from('<I', g1m, q + 24)[0]
         ents.append((q, 28 + 4 * n))
         q += 28 + 4 * n
-    total = sum(nents)
+    first, pos = [], 0
+    for r in rows:
+        first.append(pos)
+        pos += r[5]
+    total = pos
     assert len(ents) >= total, 'LOD entries %d < grp %d' % (len(ents), total)
-    face0 = total - nents[-1]
+    span = lambda i: list(range(first[i], first[i] + rows[i][5]))
+    moved = [e for i in move for e in span(i)]
+    order = span(0) + moved + [e for i in range(1, len(rows)) if i not in move for e in span(i)] + list(range(total, len(ents)))
     raw = [bytes(g1m[a:a + n]) for a, n in ents]
-    order = list(range(nents[0])) + list(range(face0, total)) + list(range(nents[0], face0)) + list(range(total, len(raw)))
     start = ents[0][0]
     blob = b''.join(raw[i] for i in order)
     g1m[start:start + len(blob)] = blob
-    rows[0][2] += rows[-1][2]
-    rows[0][5] += rows[-1][5]
-    rows[-1][2] = rows[-1][5] = 0
+    for i in move:
+        rows[0][2] += rows[i][2]
+        rows[0][5] += rows[i][5]
+        rows[i][2] = rows[i][5] = 0
     return bytes(g1m), b''.join(struct.pack('<8I', *r) for r in rows)
+
+
+def face_fix(g1m, grp):
+    """澪のモデルの顔（グループ 5526a88f）を常時表示にする"""
+    return merge_groups(g1m, grp, (FACE_GROUP,))
+
+
+# 紗重・八重のモデル（g1m, grp）。縄（部品 @1EED9A49）がグループ 768a168d と 6ad387ac にあり、
+# 双子のキャラはこの 2 つを表示しないので、常時表示にする
+SAE_YAE_MODELS = {'sae': (0xe92e0aff, 0xf01d9c7d), 'yae': (0x9649abe6, 0x9d393d64)}
+ROPE_GROUPS = (0x768A168D, 0x6AD387AC)
 
 
 # ---- 組み立て ----------------------------------------------------------------
@@ -163,6 +192,13 @@ def build(folder, rdb, rdx, main, sub):
             g1m, g1m_meta = read_entry(folder, rdb, rdx, g1m_h)
             grp, grp_meta = read_entry(folder, rdb, rdx, grp_h)
             g1m, grp = face_fix(g1m, grp)
+            files += [(g1m_h, g1m, g1m_meta), (grp_h, grp, grp_meta)]
+    for look in ('sae', 'yae'):
+        if look in (main, sub):
+            g1m_h, grp_h = SAE_YAE_MODELS[look]
+            g1m, g1m_meta = read_entry(folder, rdb, rdx, g1m_h)
+            grp, grp_meta = read_entry(folder, rdb, rdx, grp_h)
+            g1m, grp = merge_groups(g1m, grp, ROPE_GROUPS)
             files += [(g1m_h, g1m, g1m_meta), (grp_h, grp, grp_meta)]
 
     marker = max(rdx_files(rdx)) + 1

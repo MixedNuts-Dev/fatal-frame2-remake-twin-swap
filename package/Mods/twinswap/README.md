@@ -19,6 +19,7 @@ GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
 
 操作キャラ（澪）と同行キャラ（繭）の**見た目を入れ替えます**。
 繭を操作して澪を連れて歩く、二人とも繭、二人とも澪、の 3 通りを設定ファイルで選べます。
+2.1.0 からは、**黒澤紗重・黒澤八重**の姿も選べます（例：紗重を操作して八重を連れて歩く）。
 
 入れ替わるのはモデル（顔・髪・体・衣装）だけです。動き・声・字幕・ストーリーは
 元のままです（例えば、繭の足を引きずる歩き方は、澪の姿になっても同行キャラに残ります）。
@@ -119,8 +120,8 @@ Native120FPSOption（`dinput8.dll` + `Mods\native120fps\`）や MouseWheelCamera
 
 | 項目 | 意味 |
 |---|---|
-| `Main` | 操作キャラ（本編の澪）の見た目。`mio` か `mayu`。既定値 `mayu` |
-| `Sub` | 同行キャラ（本編の繭）の見た目。`mio` か `mayu`。既定値 `mio` |
+| `Main` | 操作キャラ（本編の澪）の見た目。`mio`（澪）/ `mayu`（繭）/ `sae`（紗重）/ `yae`（八重）。既定値 `mayu` |
+| `Sub` | 同行キャラ（本編の繭）の見た目。値は `Main` と同じ。既定値 `mio` |
 | `Enabled` | `1` = 有効 / `0` = 無効 |
 | `Log` | `1` = ログを出力 / `0` = 出力しない |
 
@@ -130,8 +131,11 @@ Native120FPSOption（`dinput8.dll` + `Mods\native120fps\`）や MouseWheelCamera
 | `mayu` | `mayu` | 二人とも繭 |
 | `mio` | `mio` | 二人とも澪 |
 | `mio` | `mayu` | 元のまま |
+| `sae` | `yae` | 紗重を操作して八重を連れて歩く |
+| `yae` | `sae` | 八重を操作して紗重を連れて歩く |
 
-`mio` / `mayu` 以外の値を書いた場合は、そのキャラ本来の見た目のままになります。
+`sae` / `yae` は、`mio` / `mayu` と自由に組み合わせられます（例：`Main=mio` / `Sub=sae`）。
+`mio` / `mayu` / `sae` / `yae` 以外の値を書いた場合は、そのキャラ本来の見た目のままになります。
 
 ## 衣装の対応
 
@@ -141,6 +145,8 @@ Native120FPSOption（`dinput8.dll` + `Mods\native120fps\`）や MouseWheelCamera
 - **SILENT HILL f とのコラボ衣装・アイテムは対象外です。** 澪の 8 着目
   （ネイビーセーラー）は繭側に対になる衣装が無いため入れ替えず、選ぶと澪の姿のままになります
 - アクセサリーは入れ替えの対象外です。入れ替えた姿にも、そのまま反映されます
+- **紗重・八重は白い着物の 1 着だけです。** `sae` / `yae` を指定したキャラは、衣装メニューで
+  どの衣装を選んでもその姿になります（澪の 8 着目を除く）
 
 ### ゲーム内での動作確認の範囲
 
@@ -152,12 +158,19 @@ TAB メニュー、衣装画面、フォトモードを確認しています。
 ゲーム内ではまだ確認していません。表示がおかしい衣装があれば、
 GitHub の Issue で教えてください。
 
+紗重・八重は、`Main=sae` / `Sub=yae` と `Main=yae` / `Sub=yae` で、歩いたときの表示
+（赤い縄を含む）を確認しています。
+
 ## 注意事項
 
 - **衣装画面のプレビューも、入れ替えた後の姿で表示されます。** 衣装の名前と
   プレビューの姿が一致しないのは、この Mod の仕様です
 - ゲーム中のムービーは動画ファイルなので、入れ替わりません
-- 入れ替え用のデータ（`MixedNuts\cache\fdata_package\`、最大で約 90 MB）は、ローダーが
+- **紗重・八重の赤い縄は、歩くと着物を少し突き抜けることがあります。** 紗重・八重本来の
+  体の動きに合わせて作られた部品のためです
+- `sae` / `yae` を選ぶと、ゲームに本来登場する紗重・八重（敵やイベントの姿）も、赤い縄が
+  常に表示される状態になります。本来は縄の一部を出さない場面でも、縄が見えることがあります
+- 入れ替え用のデータ（`MixedNuts\cache\fdata_package\`、最大で約 100 MB）は、ローダーが
   作ります。ゲームのファイル（Yumia fdata tools で入れた Mod を含む）、導入している Mod、
   その設定のいずれかが変わると、次の起動で自動的に作り直されます。
   それ以外の起動では、作ったものをそのまま使います。削除してもかまいません
@@ -198,7 +211,7 @@ GitHub の Issue で教えてください。
 `twinswap.log`：
 
 ```
-TwinSwap 2.0.0  Main=mayu Sub=mio
+TwinSwap 2.1.0  Main=mayu Sub=mio
 [OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
@@ -236,6 +249,9 @@ https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
 顔が消えます。Mod は繭のモデルと同じ構造になるよう、顔を常時表示のグループへ移します
 （ファイルのサイズは変わりません）。
 
+紗重・八重のモデルは、赤い縄を澪・繭に無い表示グループに置いていて、澪・繭のキャラは
+このグループを表示しません。顔と同じ方法で、縄を常時表示のグループへ移します。
+
 この Mod は索引ファイル（root.rdb / root.rdx）をローダーに登録します。ゲームが索引
 ファイルを最初に開くとき、ローダーはその時点の索引ファイル（Yumia fdata tools で入れた
 Mod や、先に適用されたローダーの Mod の変更を含む）をこの Mod に渡します。Mod は
@@ -252,7 +268,8 @@ Mod や、先に適用されたローダーの Mod の変更を含む）をこ�
 
 **Swaps the looks of the player character (Mio) and the companion (Mayu).**
 In the config file you can choose between playing as Mayu with Mio at your side,
-two Mayus, or two Mios.
+two Mayus, or two Mios. From 2.1.0, **Sae and Yae Kurosawa** can be chosen too
+(for example, play as Sae with Yae at your side).
 
 Only the models (face, hair, body and costume) change. Animations, voices, subtitles
 and the story stay as they are. For example, Mayu's limp remains on the companion
@@ -354,8 +371,8 @@ To disable temporarily, set `Enabled` to `0` in `twinswap.ini`.
 
 | Key | Meaning |
 |---|---|
-| `Main` | Look of the player character (Mio in the story). `mio` or `mayu`. Default `mayu` |
-| `Sub` | Look of the companion (Mayu in the story). `mio` or `mayu`. Default `mio` |
+| `Main` | Look of the player character (Mio in the story). `mio` / `mayu` / `sae` / `yae`. Default `mayu` |
+| `Sub` | Look of the companion (Mayu in the story). Same values as `Main`. Default `mio` |
 | `Enabled` | `1` = on / `0` = off |
 | `Log` | `1` = write a log file / `0` = no log |
 
@@ -365,8 +382,11 @@ To disable temporarily, set `Enabled` to `0` in `twinswap.ini`.
 | `mayu` | `mayu` | two Mayus |
 | `mio` | `mio` | two Mios |
 | `mio` | `mayu` | vanilla |
+| `sae` | `yae` | play as Sae with Yae at your side |
+| `yae` | `sae` | play as Yae with Sae at your side |
 
-Any value other than `mio` / `mayu` leaves that character's original look.
+`sae` / `yae` can be combined freely with `mio` / `mayu` (for example `Main=mio` / `Sub=sae`).
+Any value other than `mio` / `mayu` / `sae` / `yae` leaves that character's original look.
 
 ## Costume pairing
 
@@ -377,6 +397,8 @@ her 2nd costume, the player character appears as Mayu in Mayu's 2nd costume.
   8th costume (the navy sailor outfit) has no counterpart on Mayu's side and is not
   swapped; with it selected, the player character keeps Mio's look
 - Accessories are not part of the swap. They show up on the swapped look as usual
+- **Sae and Yae have a single outfit (the white kimono).** A character set to `sae` /
+  `yae` looks like her whichever costume is selected (except Mio's 8th)
 
 ### What has been checked in game
 
@@ -389,12 +411,20 @@ The other costumes (2nd to 6th) go through exactly the same process, but have no
 been checked in game yet. If one of them looks wrong, please let me know in a
 GitHub Issue.
 
+Sae and Yae were checked walking around (including the red rope) with
+`Main=sae` / `Sub=yae` and `Main=yae` / `Sub=yae`.
+
 ## Notes
 
 - **The preview in the costume menu also shows the swapped look.** The costume name
   and the preview not matching is expected with this mod
 - The game's cutscenes are video files, so they are not swapped
-- The swap data (`MixedNuts\cache\fdata_package\`, up to about 90 MB) is generated
+- **Sae's and Yae's red rope may clip slightly through the kimono while walking.** It
+  was made for their own body movement
+- With `sae` / `yae` selected, the Sae and Yae who appear in the game itself (as an
+  enemy or in events) also always show the whole red rope, even in scenes where part
+  of it would normally be hidden
+- The swap data (`MixedNuts\cache\fdata_package\`, up to about 100 MB) is generated
   by the loader. It is rebuilt automatically on the next launch when the game's
   files (including mods installed with Yumia fdata tools), the installed mods or
   their settings change; other launches reuse it. It is safe to delete (it is
@@ -436,7 +466,7 @@ If the logs contain lines like these, the mod is working:
 `twinswap.log`:
 
 ```
-TwinSwap 2.0.0  Main=mayu Sub=mio
+TwinSwap 2.1.0  Main=mayu Sub=mio
 [OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
@@ -476,6 +506,10 @@ models lose everything of the face but the eyeballs. The mod moves the face into
 the always-visible group, the same layout Mayu's models use (file sizes do not
 change).
 
+Sae's and Yae's models keep the red rope in display groups that Mio's and Mayu's
+models do not have, so the twins never show them. The mod moves the rope into the
+always-visible group in the same way as the face.
+
 The mod registers the index files (root.rdb / root.rdx) with the loader. When the
 game first opens either of them, the loader hands the mod the current index files
 (including mods installed with Yumia fdata tools and the changes of earlier loader
@@ -485,6 +519,13 @@ files rewritten to point at it; the loader stores them in
 redirect itself is done by the loader (details in the loader's README).
 
 ---
+
+## クレジット / Credits
+
+- **SyobonAction** — 紗重・八重のスワップ Mod「Yae x Sae」を作っていただきました。紗重・八重の
+  モデルの特定と、赤い縄の問題に気付く手がかりになりました（ファイルやコードは使っていません）。
+  Made the "Yae x Sae" swap mod, which helped identify Sae's and Yae's models and
+  pointed out the missing red rope (none of its files or code are used here).
 
 ## License
 

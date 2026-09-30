@@ -4,11 +4,13 @@
 A mod for FATAL FRAME / PROJECT ZERO II: Crimson Butterfly REMAKE (Steam, AppID 3920610).
 
 操作キャラ（澪）と同行キャラ（繭）の**見た目を入れ替えます**。繭を操作して澪を連れて歩く、
-二人とも繭、二人とも澪、の 3 通りを設定ファイルで選べます。
+二人とも繭、二人とも澪、の 3 通りを設定ファイルで選べます。2.1.0 からは**黒澤紗重・黒澤八重**の
+姿も選べます。
 入れ替わるのはモデル（顔・髪・体・衣装）だけで、動き・声・字幕・ストーリーは元のままです。
 
 **Swaps the looks of the player character (Mio) and the companion (Mayu).** Play as Mayu
 with Mio at your side, or make both twins Mayu or both Mio, chosen in a config file.
+From 2.1.0, **Sae and Yae Kurosawa** can be chosen too.
 Only the models (face, hair, body and costume) change; animations, voices, subtitles
 and the story stay as they are.
 
@@ -83,8 +85,8 @@ at 1.x, update them all at once; see the loader's README for details. You may co
 
 | 項目 / Key | 意味 / Meaning |
 |---|---|
-| `Main` | 操作キャラ（本編の澪）の見た目。`mio` / `mayu`、既定 `mayu` / Look of the player character (Mio in the story). Default `mayu` |
-| `Sub` | 同行キャラ（本編の繭）の見た目。`mio` / `mayu`、既定 `mio` / Look of the companion (Mayu in the story). Default `mio` |
+| `Main` | 操作キャラ（本編の澪）の見た目。`mio` / `mayu` / `sae` / `yae`、既定 `mayu` / Look of the player character (Mio in the story). Default `mayu` |
+| `Sub` | 同行キャラ（本編の繭）の見た目。値は `Main` と同じ、既定 `mio` / Look of the companion (Mayu in the story). Same values, default `mio` |
 | `Enabled` | `1` = 有効 on / `0` = 無効 off |
 | `Log` | `1` = ログを出力 write a log / `0` = 出力しない no log |
 
@@ -94,6 +96,10 @@ at 1.x, update them all at once; see the loader's README for details. You may co
 | `mayu` | `mayu` | 二人とも繭 / two Mayus |
 | `mio` | `mio` | 二人とも澪 / two Mios |
 | `mio` | `mayu` | 元のまま / vanilla |
+| `sae` | `yae` | 紗重を操作して八重を連れて歩く / play as Sae with Yae at your side |
+
+`sae` / `yae` は `mio` / `mayu` と自由に組み合わせられます。
+`sae` / `yae` can be combined freely with `mio` / `mayu`.
 
 ## 衣装と動作確認の範囲 / Costumes and what has been checked
 
@@ -112,13 +118,18 @@ Costumes are paired one-to-one in costume menu order (Mio's nth ↔ Mayu's nth).
   Accessories are not swapped; they show up on the swapped look as usual.
 - 衣装画面のプレビューも入れ替えた後の姿になります。
   The costume menu preview also shows the swapped look.
+- **紗重・八重は白い着物の 1 着だけです。** どの衣装を選んでもその姿になります（澪の 8 着目を除く）。
+  歩いたときの表示（赤い縄を含む）を確認しています。縄は着物を少し突き抜けることがあります。
+  **Sae and Yae have a single outfit (the white kimono)**, shown whichever costume is
+  selected (except Mio's 8th). Checked walking around, including the red rope, which may
+  clip slightly through the kimono.
 
 ## 他の Mod との併用 / Using it with other mods
 
-- **Native120FPSOption / MouseWheelCameraSpeed とは干渉しません。** TwinSwap 2.0.0 を
+- **Native120FPSOption / MouseWheelCameraSpeed とは干渉しません。** TwinSwap を
   含め、どれも同じローダーの上で動くので、DLL は 1 つを共有し、ぶつかることはありません。
   **No interference with Native120FPSOption or MouseWheelCameraSpeed.** They and
-  TwinSwap 2.0.0 all run on the same loader, so they share one DLL and never conflict.
+  TwinSwap all run on the same loader, so they share one DLL and never conflict.
 - **Yumia fdata tools で入れる Mod と併用できます。** その時点の Mod 込みのデータを元に
   入れ替え用のデータを作り、Mod が変わると次の起動で作り直します。
   **Works with mods installed with Yumia fdata tools.** The swap data is built from the
@@ -171,10 +182,10 @@ The distributable set is written to `dist\MixedNuts\Mods\twinswap\`.
 
 どちらも開発者の環境のパスを直書きしています。 / Both contain paths from the author's machine.
 
-`verify_dll.py` は 1.x 用に書いたもので（古い `xinput1_4.dll` を動かします）、2.0.0 では
-そのままでは動きません。
-`verify_dll.py` was written for 1.x (it drives the old `xinput1_4.dll`) and does not work
-with 2.0.0 as-is.
+`verify_dll.py` は、テスト用のゲームフォルダにローダー（`mod-loader\loader\dist`）とこの
+プラグインを入れ、ini の 8 通りの組み合わせでローダーのキャッシュを参照実装と比べます。
+`verify_dll.py` installs the loader (`mod-loader\loader\dist`) and this plugin into a test
+game folder and compares the loader's cache with the reference for 8 ini combinations.
 
 ## 仕組み / How it works
 
@@ -229,6 +240,21 @@ same layout as Mayu's:
 
 どちらもファイルのサイズは変わりません。`Sub=mio` のとき、澪の 7 着 × 2 モデルに適用します。
 Neither changes the file size. It is applied to Mio's 7 costumes × 2 models when `Sub=mio`.
+
+### 紗重・八重 / Sae and Yae
+
+紗重・八重は、白い着物のモデル定義が 1 つずつあります（紗重 `0xAA5CC277` / g1m `0xE92E0AFF`、
+八重 `0x47095B30` / g1m `0x9649ABE6`）。敵として配置表に載っている方を紗重としました。
+`sae` / `yae` を指定した枠は、全衣装の高精細・軽量ともこの定義を指します。顔は常時表示の
+グループにあるので、顔の修正は要りません。赤い縄（部品 `@1EED9A49`）はグループ `768A168D` と
+`6AD387AC` にあり、澪・繭のキャラは表示しないので、顔と同じ方法でグループ 0 へ移します。
+
+Sae and Yae each have one model definition, the white kimono (Sae `0xAA5CC277` / g1m
+`0xE92E0AFF`, Yae `0x47095B30` / g1m `0x9649ABE6`); the one listed in the enemy
+placement tables is Sae. A slot set to `sae` / `yae` points at that definition for every
+costume, high and low detail alike. Their faces are already in the always-visible group.
+The red rope (part `@1EED9A49`) sits in groups `768A168D` and `6AD387AC`, which the
+twins never show, so it is moved into group 0 the same way as the face.
 
 ### ファイルの差し替え / Serving the data
 
@@ -285,6 +311,11 @@ If you run into a problem, please open a GitHub Issue. **Be sure to attach both
 [Yumia fdata tools](https://github.com/eArmada8/yumia_fdata_tools) を読んで理解しました。
 The archive format (rdb / rdx / fdata) was understood from eArmada8's
 [Yumia fdata tools](https://github.com/eArmada8/yumia_fdata_tools).
+
+紗重・八重への対応では、SyobonAction 氏の Mod「Yae x Sae」がモデルの特定と赤い縄の問題に
+気付く手がかりになりました（ファイルやコードは使っていません）。
+SyobonAction's "Yae x Sae" mod helped identify Sae's and Yae's models and pointed out the
+missing red rope (none of its files or code are used here).
 
 ## ライセンス / License
 

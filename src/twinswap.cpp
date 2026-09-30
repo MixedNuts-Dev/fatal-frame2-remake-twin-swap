@@ -2,7 +2,7 @@
 // Created by MixedNuts - https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
 // Licensed under the MIT License. See LICENSE for details.
 //
-// 操作キャラ（澪）と同行キャラ（繭）の見た目を ini の指定で入れ替える。
+// 操作キャラ（澪）と同行キャラ（繭）の見た目を、澪・繭・紗重・八重から ini で選ぶ。
 // MixedNuts Mod Loader のプラグインとして MixedNuts\Mods\twinswap\ に置く
 // （2.0.0 から。1.x は xinput1_4.dll のプロキシで単独で動いていた）。
 //
@@ -49,16 +49,21 @@ using mixednuts::Utf8;
 using mixednuts::Wr;
 using mixednuts::file::ReadAt;
 
-constexpr char     kVersion[]  = "2.0.0";
-constexpr char     kCacheTag[] = "twinswap-v2";   // 生成ロジックを変えたら上げる
+constexpr char     kVersion[]  = "2.1.0";
+constexpr char     kCacheTag[] = "twinswap-v3";   // 生成ロジックを変えたら上げる
 constexpr uint32_t kFdataHash  = 0xFFFE7510;
 
 const wchar_t kRdb[] = L"fdata_package\\root.rdb";
 const wchar_t kRdx[] = L"fdata_package\\root.rdx";
 
+// 見た目の選択肢。ini の値もこの名前
+enum Look { kMio, kMayu, kSae, kYae };
+const wchar_t* const kLookNames[] = {L"mio", L"mayu", L"sae", L"yae"};
+const char* const    kLookNamesA[] = {"mio", "mayu", "sae", "yae"};
+
 bool g_enabled = true;
-bool g_mainMayu = true;   // 操作キャラの見た目
-bool g_subMio   = true;   // 同行キャラの見た目
+Look g_main = kMayu;   // 操作キャラ（本編の澪）の見た目
+Look g_sub  = kMio;    // 同行キャラ（本編の繭）の見た目
 
 // ---- ファイル入出力 -----------------------------------------------------
 //
@@ -90,6 +95,23 @@ const uint32_t kMayuDefs[7][2] = {
     {0xC298B703, 0x851AEE79}, {0x40707304, 0x02F2AA7A}, {0xBE482F05, 0x80CA667B},
     {0x3C1FEB06, 0xFEA2227C}};
 
+// 紗重・八重は白い着物の 1 着だけで、高精細・軽量の区別も無い。どの衣装を選んでも
+// この定義を指す。敵として配置される（キャラ ID 0x04e46180）方が紗重、どの配置表にも
+// 無くイベントだけに出る方が八重。どちらも顔は常時表示のグループ 0 にあり、顔の修正は要らない
+constexpr uint32_t kSaeDef = 0xAA5CC277;   // g1m 0xe92e0aff
+constexpr uint32_t kYaeDef = 0x47095B30;   // g1m 0x9649abe6
+
+uint32_t DefFor(Look look, int costume, int detail)
+{
+    switch (look)
+    {
+    case kMio:  return kMioDefs[costume][detail];
+    case kMayu: return kMayuDefs[costume][detail];
+    case kSae:  return kSaeDef;
+    default:    return kYaeDef;
+    }
+}
+
 // 上の澪のモデル定義が使う {g1m, grp}
 const uint32_t kMioModels[14][2] = {
     {0xCADE596E, 0xD1CDEAEC}, {0xB50F91E4, 0xBBFF2362}, {0xD7774EEF, 0xDE66E06D},
@@ -99,6 +121,12 @@ const uint32_t kMioModels[14][2] = {
     {0x16741A74, 0x1D63ABF2}, {0x00A552EA, 0x0794E468}};
 
 constexpr uint32_t kFaceGroup = 0x5526A88F;
+
+// 紗重・八重のモデルの {g1m, grp}。縄（部品 @1EED9A49）がグループ 768a168d と 6ad387ac にあり、
+// 双子のキャラはこの 2 つを表示しないので、顔と同じ方法で常時表示のグループ 0 へ移す
+const uint32_t kSaeModel[2] = {0xE92E0AFF, 0xF01D9C7D};
+const uint32_t kYaeModel[2] = {0x9649ABE6, 0x9D393D64};
+const uint32_t kRopeGroups[] = {0x768A168D, 0x6AD387AC};
 
 // ---- rdb / rdx / fdata --------------------------------------------------
 
@@ -254,8 +282,8 @@ bool AssignRefs(std::vector<uint8_t>& db, uint32_t hash)
     for (int i = 0; i < 7; ++i)
         for (int k = 0; k < 2; ++k)
         {
-            Wr<uint32_t>(&db[mioPos[i][k]], g_mainMayu ? kMayuDefs[i][k] : kMioDefs[i][k]);
-            Wr<uint32_t>(&db[mayuPos[i][k]], g_subMio ? kMioDefs[i][k] : kMayuDefs[i][k]);
+            Wr<uint32_t>(&db[mioPos[i][k]], DefFor(g_main, i, k));
+            Wr<uint32_t>(&db[mayuPos[i][k]], DefFor(g_sub, i, k));
         }
     return true;
 }
@@ -286,20 +314,37 @@ bool G1mgSection(const std::vector<uint8_t>& d, uint32_t type, size_t& out)
     return false;
 }
 
-// 顔のグループ（grp の最後、5526a88f）の LOD エントリを、グループ 0 の直後へ移す。
-// grp はグループ 0 を広げ、顔のグループは名前を残したまま空にする（名前から番号を
-// 引く処理が、見つからない名前でどう振る舞うか分からないので、名前は消さない）
-bool FaceFix(File& g1m, File& grp)
+// 指定した名前のグループの LOD エントリを、常時表示のグループ 0 の直後へ移す。
+// grp はグループ 0 をその分広げ、移したグループは名前を残したまま空にする（名前から
+// 番号を引く処理が、見つからない名前でどう振る舞うか分からないので、名前は消さない）。
+// どちらもサイズは変わらない
+bool MergeGroups(File& g1m, File& grp, const uint32_t* names, size_t count)
 {
     auto& gd = grp.data;
     if (gd.size() < 64 || gd.size() % 32) return false;
     const size_t groups = gd.size() / 32;
-    uint8_t* last = &gd[(groups - 1) * 32];
-    if (Rd<uint32_t>(last) != kFaceGroup) { Log("[NG] grp 0x%08X: face group is not last", grp.hash); return false; }
 
-    std::vector<uint32_t> nent(groups);
-    size_t total = 0;
-    for (size_t i = 0; i < groups; ++i) total += nent[i] = Rd<uint32_t>(&gd[i * 32 + 0x14]);
+    std::vector<size_t> first(groups), nent(groups);
+    std::vector<bool> move(groups, false);
+    size_t total = 0, moving = 0;
+    for (size_t i = 0; i < groups; ++i)
+    {
+        const uint8_t* r = &gd[i * 32];
+        first[i] = total;
+        total += nent[i] = Rd<uint32_t>(r + 0x14);
+        for (size_t k = 0; k < count; ++k)
+            if (i > 0 && Rd<uint32_t>(r) == names[k]) move[i] = true;
+        if (!move[i]) continue;
+        // 差分（ID 付き）の数の欄が使われているグループは扱わない
+        if (Rd<uint32_t>(r + 0x0C) || Rd<uint32_t>(r + 0x10) || Rd<uint32_t>(r + 0x18) ||
+            Rd<uint32_t>(r + 0x1C))
+        {
+            Log("[NG] grp 0x%08X: group %zu has fields this mod does not handle", grp.hash, i);
+            return false;
+        }
+        ++moving;
+    }
+    if (!moving) { Log("[NG] grp 0x%08X: the groups to move are not found", grp.hash); return false; }
 
     auto& d = g1m.data;
     size_t sec = 0;
@@ -318,11 +363,12 @@ bool FaceFix(File& g1m, File& grp)
         Log("[NG] g1m 0x%08X: %zu LOD entries, grp expects %zu", g1m.hash, ents.size(), total);
         return false;
     }
-    const size_t g0 = nent[0], face0 = total - nent[groups - 1];
+    // 新しい並び: グループ 0、移すグループ（元の順）、残りのグループ、grp に属さない末尾
     std::vector<size_t> order;
-    for (size_t i = 0; i < g0; ++i) order.push_back(i);
-    for (size_t i = face0; i < total; ++i) order.push_back(i);
-    for (size_t i = g0; i < face0; ++i) order.push_back(i);
+    auto span = [&](size_t g) { for (size_t e = 0; e < nent[g]; ++e) order.push_back(first[g] + e); };
+    span(0);
+    for (size_t g = 1; g < groups; ++g) if (move[g]) span(g);
+    for (size_t g = 1; g < groups; ++g) if (!move[g]) span(g);
     for (size_t i = total; i < ents.size(); ++i) order.push_back(i);
 
     std::vector<uint8_t> blob;
@@ -330,10 +376,29 @@ bool FaceFix(File& g1m, File& grp)
                                        d.begin() + ents[i].first + ents[i].second);
     memcpy(&d[ents[0].first], blob.data(), blob.size());   // エントリは連続しているので長さは同じ
 
-    Wr<uint32_t>(&gd[0x08], Rd<uint32_t>(&gd[0x08]) + Rd<uint32_t>(last + 0x08));
-    Wr<uint32_t>(&gd[0x14], Rd<uint32_t>(&gd[0x14]) + Rd<uint32_t>(last + 0x14));
-    Wr<uint32_t>(last + 0x08, 0);
-    Wr<uint32_t>(last + 0x14, 0);
+    for (size_t g = 1; g < groups; ++g)
+    {
+        if (!move[g]) continue;
+        uint8_t* r = &gd[g * 32];
+        Wr<uint32_t>(&gd[0x08], Rd<uint32_t>(&gd[0x08]) + Rd<uint32_t>(r + 0x08));
+        Wr<uint32_t>(&gd[0x14], Rd<uint32_t>(&gd[0x14]) + Rd<uint32_t>(r + 0x14));
+        Wr<uint32_t>(r + 0x08, 0);
+        Wr<uint32_t>(r + 0x14, 0);
+    }
+    return true;
+}
+
+// 読み出して直したモデルを files に足す。直せなければ足さずに警告だけ出す
+bool AddMerged(const Source& src, const uint32_t model[2], const uint32_t* names, size_t count,
+               std::vector<File>& files, bool& merged)
+{
+    File g1m, grp;
+    merged = false;
+    if (!ReadEntry(src, model[0], g1m) || !ReadEntry(src, model[1], grp)) return false;
+    if (!MergeGroups(g1m, grp, names, count)) return true;
+    files.push_back(std::move(g1m));
+    files.push_back(std::move(grp));
+    merged = true;
     return true;
 }
 
@@ -377,22 +442,27 @@ bool Generate()
         files.push_back(std::move(f));
     }
     int fixed = 0;
-    if (g_subMio)
+    if (g_sub == kMio)   // 澪のモデルを同行キャラに付けるときだけ顔を直す
     {
         for (auto& m : kMioModels)
         {
-            File g1m, grp;
-            if (!ReadEntry(src, m[0], g1m) || !ReadEntry(src, m[1], grp)) return false;
-            if (!FaceFix(g1m, grp))
-            {
-                Log("[NG] Could not fix the face of model 0x%08X; Mio's face may be missing in"
-                    " that costume when she is the companion", m[0]);
-                continue;
-            }
-            files.push_back(std::move(g1m));
-            files.push_back(std::move(grp));
-            ++fixed;
+            bool merged = false;
+            if (!AddMerged(src, m, &kFaceGroup, 1, files, merged)) return false;
+            if (merged) ++fixed;
+            else Log("[NG] Could not fix the face of model 0x%08X; Mio's face may be missing in"
+                     " that costume when she is the companion", m[0]);
         }
+    }
+    // 紗重・八重は縄のグループを常時表示にする（双子のキャラはこの 2 つを表示しない）
+    for (Look look : {kSae, kYae})
+    {
+        if (g_main != look && g_sub != look) continue;
+        bool merged = false;
+        if (!AddMerged(src, look == kSae ? kSaeModel : kYaeModel, kRopeGroups,
+                       sizeof(kRopeGroups) / sizeof(kRopeGroups[0]), files, merged))
+            return false;
+        if (merged) ++fixed;
+        else Log("[NG] Could not show the rope of %s; she will appear without it", kLookNamesA[look]);
     }
 
     // fdata: "PDRK0000", u32 0x10, u32 全体サイズ、その後に 16 バイト境界でエントリ
@@ -463,7 +533,7 @@ bool Generate()
         Log("[NG] Cannot hand the swap data to the loader");
         return false;
     }
-    Log("[OK] Generated the swap data (%zu files, %d Mio models fixed, %zu bytes)",
+    Log("[OK] Generated the swap data (%zu files, %d models fixed, %zu bytes)",
         files.size(), fixed, fdata.size());
     return true;
 }
@@ -482,27 +552,22 @@ int GenerateSwap(void*, const MixedNutsPatchIo* io, char* note, size_t cap)
         return 0;
     }
     Log("     (took %lu ms)", GetTickCount() - t0);
-    sprintf_s(note, cap, "Main=%s Sub=%s", g_mainMayu ? "mayu" : "mio", g_subMio ? "mio" : "mayu");
+    sprintf_s(note, cap, "Main=%s Sub=%s", kLookNamesA[g_main], kLookNamesA[g_sub]);
     return 1;
 }
 
 // ---- 設定 ---------------------------------------------------------------
 
-// 項目が無ければ既定値（入れ替え）を使う。値が mio / mayu のどちらでもなければ、
-// 打ち間違いで意図しない入れ替えが起きないよう、そのキャラ本来の見た目のままにする
-bool ReadLook(const std::wstring& ini, const wchar_t* key, const wchar_t* def, bool& isOther,
-              const wchar_t* other, const wchar_t* own)
+// 項目が無ければ既定値（入れ替え）を使う。値がどの名前でもなければ、打ち間違いで
+// 意図しない入れ替えが起きないよう、そのキャラ本来の見た目のままにする
+Look ReadLook(const std::wstring& ini, const wchar_t* key, Look def, Look own)
 {
-    const std::wstring s = mixednuts::ini::String(ini, L"Swap", key, def);
-    if (_wcsicmp(s.c_str(), L"mio") == 0 || _wcsicmp(s.c_str(), L"mayu") == 0)
-    {
-        isOther = _wcsicmp(s.c_str(), other) == 0;
-        return true;
-    }
-    Log("[NG] [Swap] %s=%s is not mio or mayu; keeping the original look (%s)",
-        Utf8(key).c_str(), Utf8(s).c_str(), Utf8(own).c_str());
-    isOther = false;
-    return false;
+    const std::wstring s = mixednuts::ini::String(ini, L"Swap", key, kLookNames[def]);
+    for (int i = kMio; i <= kYae; ++i)
+        if (_wcsicmp(s.c_str(), kLookNames[i]) == 0) return static_cast<Look>(i);
+    Log("[NG] [Swap] %s=%s is not mio, mayu, sae or yae; keeping the original look (%s)",
+        Utf8(key).c_str(), Utf8(s).c_str(), kLookNamesA[own]);
+    return own;
 }
 
 void LoadConfig()
@@ -511,8 +576,8 @@ void LoadConfig()
     const std::wstring file = g_modDir + L"twinswap.ini";
     g_enabled = ini::Bool(file, L"General", L"Enabled", true);
     mixednuts::log::Open(g_modDir, L"twinswap.log", ini::Bool(file, L"General", L"Log", true));
-    ReadLook(file, L"Main", L"mayu", g_mainMayu, L"mayu", L"mio");
-    ReadLook(file, L"Sub", L"mio", g_subMio, L"mio", L"mayu");
+    g_main = ReadLook(file, L"Main", kMayu, kMio);
+    g_sub  = ReadLook(file, L"Sub", kMio, kMayu);
 }
 
 } // namespace
@@ -525,11 +590,10 @@ MIXEDNUTS_PLUGIN_EXPORT int WINAPI MixedNutsPluginInit(const MixedNutsApi* api)
     g_api    = api;
     g_modDir = api->pluginDir;
     LoadConfig();
-    Log("TwinSwap %s  Main=%s Sub=%s", kVersion, g_mainMayu ? "mayu" : "mio",
-        g_subMio ? "mio" : "mayu");
+    Log("TwinSwap %s  Main=%s Sub=%s", kVersion, kLookNamesA[g_main], kLookNamesA[g_sub]);
 
     // 見た目が元のままなら何もしない
-    if (!g_enabled || (!g_mainMayu && !g_subMio))
+    if (!g_enabled || (g_main == kMio && g_sub == kMayu))
     {
         Log("[OK] Nothing to swap (disabled or Main=mio / Sub=mayu)");
         return 1;
@@ -537,8 +601,7 @@ MIXEDNUTS_PLUGIN_EXPORT int WINAPI MixedNutsPluginInit(const MixedNutsApi* api)
 
     // tag には結果に影響する設定も入れる。変わればローダーが作り直す
     static char tag[64];
-    sprintf_s(tag, "%s main=%s sub=%s", kCacheTag, g_mainMayu ? "mayu" : "mio",
-              g_subMio ? "mio" : "mayu");
+    sprintf_s(tag, "%s main=%s sub=%s", kCacheTag, kLookNamesA[g_main], kLookNamesA[g_sub]);
     static const wchar_t* const targets[] = { kRdb, kRdx, nullptr };
     const MixedNutsPatch patch{ targets, tag, &GenerateSwap, nullptr };
     if (!api->RegisterPatch(api, &patch))
