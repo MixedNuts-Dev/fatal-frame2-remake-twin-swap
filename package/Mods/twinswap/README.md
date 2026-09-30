@@ -9,7 +9,7 @@ Created by MixedNuts
 **2.0.0 requires MixedNutsModLoader (1.0.0 or later).**
 
 Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
-GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+GitHub: https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader
 
 ---
 
@@ -32,7 +32,7 @@ GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
 - FATAL FRAME II: Crimson Butterfly REMAKE（Steam 版）
 - **MixedNutsModLoader 1.0.0 以降**（別途導入が必要です）
   Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
-  GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  GitHub: https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader
   （Releases からダウンロードしてください）
 
 ゲームのファイルは一切変更しないため、Steam のファイル整合性チェックに
@@ -234,7 +234,7 @@ TwinSwap 2.1.0  Main=mayu Sub=mio
 不具合を報告するときは、GitHub の Issue で `twinswap.log` と `loader.log` の
 2 つを添付してください。
 
-https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
+https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap/issues
 
 ## 仕組み
 
@@ -283,7 +283,7 @@ even when she looks like Mio.
 - FATAL FRAME II: Crimson Butterfly REMAKE (Steam)
 - **MixedNutsModLoader 1.0.0 or later** (installed separately)
   Nexus Mods: https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26
-  GitHub: https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader
+  GitHub: https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader
   (download it from its Releases)
 
 No game files are modified, so this will not trip Steam's file integrity verification.
@@ -489,7 +489,7 @@ With `Main=mio` / `Sub=mayu` (vanilla) or `Enabled=0`, the log says
 When reporting a problem, please open a GitHub Issue and attach both `twinswap.log`
 and `loader.log`.
 
-https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap/issues
+https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap/issues
 
 ## How it works
 
@@ -537,4 +537,4 @@ MIT License — Copyright (c) 2026 MixedNuts
 This software is provided under the MIT License. You are free to redistribute and
 modify it, but the copyright notice and the license text must be retained.
 
-https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
+https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap

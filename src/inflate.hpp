@@ -1,5 +1,5 @@
 // FATAL FRAME II: Crimson Butterfly REMAKE — TwinSwap
-// Created by MixedNuts - https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
+// Created by MixedNuts - https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap
 // Licensed under the MIT License. See LICENSE for details.
 //
 // zlib 形式（RFC 1950 / 1951）の展開だけを行う最小実装。

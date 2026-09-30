@@ -1,5 +1,5 @@
 // FATAL FRAME II: Crimson Butterfly REMAKE — TwinSwap
-// Created by MixedNuts - https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap
+// Created by MixedNuts - https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap
 // Licensed under the MIT License. See LICENSE for details.
 //
 // 操作キャラ（澪）と同行キャラ（繭）の見た目を、澪・繭・紗重・八重から ini で選ぶ。

@@ -14,18 +14,18 @@ From 2.1.0, **Sae and Yae Kurosawa** can be chosen too.
 Only the models (face, hair, body and costume) change; animations, voices, subtitles
 and the story stay as they are.
 
-> **2.0.0 から [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+> **2.0.0 から [MixedNutsModLoader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader)
 > （1.0.0 以降）が必要です。** 1.x は `xinput1_4.dll` で単体で動いていましたが、2.0.0 は
 > ローダーのプラグインになりました。
 >
-> **2.0.0 requires [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+> **2.0.0 requires [MixedNutsModLoader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader)
 > (1.0.0 or later).** 1.x ran on its own via `xinput1_4.dll`; 2.0.0 is a plugin for the loader.
 
 ## 導入 / Installation
 
 **ビルドは不要です。**
 
-1. [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+1. [MixedNutsModLoader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader)
    を、その Releases か [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26) からダウンロードして先に導入します。
 2. この Mod を [Releases](../../releases) または
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25)
@@ -34,7 +34,7 @@ and the story stay as they are.
 
 **No build required.**
 
-1. Install [MixedNutsModLoader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)
+1. Install [MixedNutsModLoader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader)
    first (download it from its Releases or [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/26)).
 2. Download this mod from [Releases](../../releases) or
    [Nexus Mods](https://www.nexusmods.com/fatalframe2crimsonbutterflyremake/mods/25) and
@@ -153,13 +153,13 @@ Visual Studio 2022 の C++ ツールセットが必要です。外部ライブ�
 Requires the Visual Studio 2022 C++ toolset. No external libraries are used (the zlib
 decoder is written from scratch).
 
-共通コード（[mod-loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader)）を
+共通コード（[mod-loader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader)）を
 submodule で取り込んでいるので、`--recursive` 付きで clone してください。
-The shared code ([mod-loader](https://github.com/MixedNuts-Dev/fatal-frame2-remake-mod-loader))
+The shared code ([mod-loader](https://github.com/MixedNutsJP/fatal-frame2-remake-mod-loader))
 is a git submodule, so clone with `--recursive`.
 
 ```
-git clone --recursive https://github.com/MixedNuts-Dev/fatal-frame2-remake-twin-swap.git
+git clone --recursive https://github.com/MixedNutsJP/fatal-frame2-remake-twin-swap.git
 build.bat
 ```
 
