@@ -17,7 +17,8 @@ obj/
 Thumbs.db
 desktop.ini
 
-# release archive / 配布用アーカイブ
+# release archive / 配布用アーカイブ（release フォルダにまとめる）
+release/
 *.zip
 
 # build artifacts, as a safety net / 念のため（build.bat の出力先は dist）
