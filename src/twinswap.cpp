@@ -49,8 +49,8 @@ using mixednuts::Utf8;
 using mixednuts::Wr;
 using mixednuts::file::ReadAt;
 
-constexpr char     kVersion[]  = "2.1.0";
-constexpr char     kCacheTag[] = "twinswap-v3";   // 生成ロジックを変えたら上げる
+constexpr char     kVersion[]  = "2.2.0";
+constexpr char     kCacheTag[] = "twinswap-v4";   // 生成ロジックを変えたら上げる
 constexpr uint32_t kFdataHash  = 0xFFFE7510;
 
 const wchar_t kRdb[] = L"fdata_package\\root.rdb";
@@ -64,6 +64,7 @@ const char* const    kLookNamesA[] = {"mio", "mayu", "sae", "yae"};
 bool g_enabled = true;
 Look g_main = kMayu;   // 操作キャラ（本編の澪）の見た目
 Look g_sub  = kMio;    // 同行キャラ（本編の繭）の見た目
+bool g_rope = true;    // 紗重・八重の赤い縄を表示するか
 
 // ---- ファイル入出力 -----------------------------------------------------
 //
@@ -95,11 +96,12 @@ const uint32_t kMayuDefs[7][2] = {
     {0xC298B703, 0x851AEE79}, {0x40707304, 0x02F2AA7A}, {0xBE482F05, 0x80CA667B},
     {0x3C1FEB06, 0xFEA2227C}};
 
-// 紗重・八重は白い着物の 1 着だけで、高精細・軽量の区別も無い。どの衣装を選んでも
-// この定義を指す。敵として配置される（キャラ ID 0x04e46180）方が紗重、どの配置表にも
-// 無くイベントだけに出る方が八重。どちらも顔は常時表示のグループ 0 にあり、顔の修正は要らない
-constexpr uint32_t kSaeDef = 0xAA5CC277;   // g1m 0xe92e0aff
-constexpr uint32_t kYaeDef = 0x47095B30;   // g1m 0x9649abe6
+// 紗重・八重は白い着物（生前の姿）の 1 着だけで、高精細・軽量の区別も無い。どの衣装を
+// 選んでもこの定義を指す。腰に縄を巻くだけの方が紗重、縄が長く垂れている方が八重
+// （2.1.0 では逆にしていた。ゲーム内で見比べた利用者の指摘で 2.2.0 で直した）。
+// どちらも顔は常時表示のグループ 0 にあり、顔の修正は要らない
+constexpr uint32_t kSaeDef = 0x47095B30;   // g1m 0x9649abe6
+constexpr uint32_t kYaeDef = 0xAA5CC277;   // g1m 0xe92e0aff
 
 uint32_t DefFor(Look look, int costume, int detail)
 {
@@ -123,9 +125,10 @@ const uint32_t kMioModels[14][2] = {
 constexpr uint32_t kFaceGroup = 0x5526A88F;
 
 // 紗重・八重のモデルの {g1m, grp}。縄（部品 @1EED9A49）がグループ 768a168d と 6ad387ac にあり、
-// 双子のキャラはこの 2 つを表示しないので、顔と同じ方法で常時表示のグループ 0 へ移す
-const uint32_t kSaeModel[2] = {0xE92E0AFF, 0xF01D9C7D};
-const uint32_t kYaeModel[2] = {0x9649ABE6, 0x9D393D64};
+// 双子のキャラはこの 2 つを表示しないので、顔と同じ方法で常時表示のグループ 0 へ移す。
+// Rope=0 なら移さない（双子のキャラでは縄が表示されないまま）
+const uint32_t kSaeModel[2] = {0x9649ABE6, 0x9D393D64};
+const uint32_t kYaeModel[2] = {0xE92E0AFF, 0xF01D9C7D};
 const uint32_t kRopeGroups[] = {0x768A168D, 0x6AD387AC};
 
 // ---- rdb / rdx / fdata --------------------------------------------------
@@ -456,7 +459,7 @@ bool Generate()
     // 紗重・八重は縄のグループを常時表示にする（双子のキャラはこの 2 つを表示しない）
     for (Look look : {kSae, kYae})
     {
-        if (g_main != look && g_sub != look) continue;
+        if (!g_rope || (g_main != look && g_sub != look)) continue;
         bool merged = false;
         if (!AddMerged(src, look == kSae ? kSaeModel : kYaeModel, kRopeGroups,
                        sizeof(kRopeGroups) / sizeof(kRopeGroups[0]), files, merged))
@@ -552,7 +555,8 @@ int GenerateSwap(void*, const MixedNutsPatchIo* io, char* note, size_t cap)
         return 0;
     }
     Log("     (took %lu ms)", GetTickCount() - t0);
-    sprintf_s(note, cap, "Main=%s Sub=%s", kLookNamesA[g_main], kLookNamesA[g_sub]);
+    sprintf_s(note, cap, "Main=%s Sub=%s Rope=%d", kLookNamesA[g_main], kLookNamesA[g_sub],
+              g_rope ? 1 : 0);
     return 1;
 }
 
@@ -578,6 +582,7 @@ void LoadConfig()
     mixednuts::log::Open(g_modDir, L"twinswap.log", ini::Bool(file, L"General", L"Log", true));
     g_main = ReadLook(file, L"Main", kMayu, kMio);
     g_sub  = ReadLook(file, L"Sub", kMio, kMayu);
+    g_rope = ini::Bool(file, L"Swap", L"Rope", true);
 }
 
 } // namespace
@@ -590,7 +595,8 @@ MIXEDNUTS_PLUGIN_EXPORT int WINAPI MixedNutsPluginInit(const MixedNutsApi* api)
     g_api    = api;
     g_modDir = api->pluginDir;
     LoadConfig();
-    Log("TwinSwap %s  Main=%s Sub=%s", kVersion, kLookNamesA[g_main], kLookNamesA[g_sub]);
+    Log("TwinSwap %s  Main=%s Sub=%s Rope=%d", kVersion, kLookNamesA[g_main], kLookNamesA[g_sub],
+        g_rope ? 1 : 0);
 
     // 見た目が元のままなら何もしない
     if (!g_enabled || (g_main == kMio && g_sub == kMayu))
@@ -601,7 +607,8 @@ MIXEDNUTS_PLUGIN_EXPORT int WINAPI MixedNutsPluginInit(const MixedNutsApi* api)
 
     // tag には結果に影響する設定も入れる。変わればローダーが作り直す
     static char tag[64];
-    sprintf_s(tag, "%s main=%s sub=%s", kCacheTag, kLookNamesA[g_main], kLookNamesA[g_sub]);
+    sprintf_s(tag, "%s main=%s sub=%s rope=%d", kCacheTag, kLookNamesA[g_main], kLookNamesA[g_sub],
+              g_rope ? 1 : 0);
     static const wchar_t* const targets[] = { kRdb, kRdx, nullptr };
     const MixedNutsPatch patch{ targets, tag, &GenerateSwap, nullptr };
     if (!api->RegisterPatch(api, &patch))

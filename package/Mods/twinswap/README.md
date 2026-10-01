@@ -122,6 +122,7 @@ Native120FPSOption（`dinput8.dll` + `Mods\native120fps\`）や MouseWheelCamera
 |---|---|
 | `Main` | 操作キャラ（本編の澪）の見た目。`mio`（澪）/ `mayu`（繭）/ `sae`（紗重）/ `yae`（八重）。既定値 `mayu` |
 | `Sub` | 同行キャラ（本編の繭）の見た目。値は `Main` と同じ。既定値 `mio` |
+| `Rope` | 紗重・八重の赤い縄。`1` = 表示（既定）/ `0` = 非表示 |
 | `Enabled` | `1` = 有効 / `0` = 無効 |
 | `Log` | `1` = ログを出力 / `0` = 出力しない |
 
@@ -168,9 +169,11 @@ GitHub の Issue で教えてください。
 - ゲーム内で描画される場面（会話やイベントのシーンなど）には、入れ替えが反映されます。
   ただし一部のムービーは録画済みの動画ファイルなので、元の姿のまま流れます
 - **紗重・八重の赤い縄は、歩くと着物を少し突き抜けることがあります。** 紗重・八重本来の
-  体の動きに合わせて作られた部品のためです
-- `sae` / `yae` を選ぶと、ゲームに本来登場する紗重・八重（敵やイベントの姿）も、赤い縄が
-  常に表示される状態になります。本来は縄の一部を出さない場面でも、縄が見えることがあります
+  体の動きに合わせて作られた部品のためです。気になる場合は `Rope=0` で非表示にできます
+- `sae` / `yae` を選び `Rope=1` のときは、イベントで登場する紗重・八重も、赤い縄が常に表示
+  される状態になります。本来は縄の一部を出さない場面でも、縄が見えることがあります
+- 2.1.0 では紗重と八重を取り違えていました。2.2.0 で直したので、`sae` / `yae` の見た目が
+  2.1.0 とは逆になります（腰に縄を巻くだけの方が紗重、縄が長く垂れている方が八重）
 - 入れ替え用のデータ（`MixedNuts\cache\fdata_package\`、最大で約 100 MB）は、ローダーが
   作ります。ゲームのファイル（Yumia fdata tools で入れた Mod を含む）、導入している Mod、
   その設定のいずれかが変わると、次の起動で自動的に作り直されます。
@@ -212,7 +215,7 @@ GitHub の Issue で教えてください。
 `twinswap.log`：
 
 ```
-TwinSwap 2.1.0  Main=mayu Sub=mio
+TwinSwap 2.2.0  Main=mayu Sub=mio Rope=1
 [OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
@@ -222,10 +225,10 @@ TwinSwap 2.1.0  Main=mayu Sub=mio
 ```
 [OK] twinswap: loaded (1 file patches)
 [OK] File hook installed (...)
-[OK] twinswap: Main=mayu Sub=mio (3 files)
+[OK] twinswap: Main=mayu Sub=mio Rope=1 (3 files)
 ```
 
-`[OK] Generated the swap data (...)` と `[OK] twinswap: Main=mayu Sub=mio (3 files)` は、
+`[OK] Generated the swap data (...)` と `[OK] twinswap: Main=mayu Sub=mio Rope=1 (3 files)` は、
 入れ替え用のデータを作った起動でだけ出ます。2 回目以降の起動では、`loader.log` の
 最後の行が `[OK] Using the cached files (N)` になります。
 
@@ -374,6 +377,7 @@ To disable temporarily, set `Enabled` to `0` in `twinswap.ini`.
 |---|---|
 | `Main` | Look of the player character (Mio in the story). `mio` / `mayu` / `sae` / `yae`. Default `mayu` |
 | `Sub` | Look of the companion (Mayu in the story). Same values as `Main`. Default `mio` |
+| `Rope` | Sae's and Yae's red rope. `1` = show (default) / `0` = hide |
 | `Enabled` | `1` = on / `0` = off |
 | `Log` | `1` = write a log file / `0` = no log |
 
@@ -422,10 +426,13 @@ Sae and Yae were checked walking around (including the red rope) with
 - Scenes rendered in the game (conversations, event scenes and so on) show the swap.
   Some movies, however, are pre-recorded video files and play with the original looks
 - **Sae's and Yae's red rope may clip slightly through the kimono while walking.** It
-  was made for their own body movement
-- With `sae` / `yae` selected, the Sae and Yae who appear in the game itself (as an
-  enemy or in events) also always show the whole red rope, even in scenes where part
-  of it would normally be hidden
+  was made for their own body movement. Set `Rope=0` to hide it
+- With `sae` / `yae` selected and `Rope=1`, the Sae and Yae who appear in events also
+  always show the whole red rope, even in scenes where part of it would normally be
+  hidden
+- 2.1.0 had Sae and Yae the wrong way round. This is fixed in 2.2.0, so `sae` / `yae`
+  look the other way round compared with 2.1.0 (Sae only has the rope tied around her
+  waist; Yae's rope hangs down)
 - The swap data (`MixedNuts\cache\fdata_package\`, up to about 100 MB) is generated
   by the loader. It is rebuilt automatically on the next launch when the game's
   files (including mods installed with Yumia fdata tools), the installed mods or
@@ -468,7 +475,7 @@ If the logs contain lines like these, the mod is working:
 `twinswap.log`:
 
 ```
-TwinSwap 2.1.0  Main=mayu Sub=mio
+TwinSwap 2.2.0  Main=mayu Sub=mio Rope=1
 [OK] Registered with the loader
 [OK] Generated the swap data (...)
 ```
@@ -478,10 +485,10 @@ TwinSwap 2.1.0  Main=mayu Sub=mio
 ```
 [OK] twinswap: loaded (1 file patches)
 [OK] File hook installed (...)
-[OK] twinswap: Main=mayu Sub=mio (3 files)
+[OK] twinswap: Main=mayu Sub=mio Rope=1 (3 files)
 ```
 
-`[OK] Generated the swap data (...)` and `[OK] twinswap: Main=mayu Sub=mio (3 files)`
+`[OK] Generated the swap data (...)` and `[OK] twinswap: Main=mayu Sub=mio Rope=1 (3 files)`
 appear only on a launch where the swap data is built. On later launches the last
 line of `loader.log` reads `[OK] Using the cached files (N)`.
 
@@ -525,9 +532,11 @@ redirect itself is done by the loader (details in the loader's README).
 ## クレジット / Credits
 
 - **SyobonAction** — 紗重・八重のスワップ Mod「Yae x Sae」を作っていただきました。紗重・八重の
-  モデルの特定と、赤い縄の問題に気付く手がかりになりました（ファイルやコードは使っていません）。
+  モデルの特定と、赤い縄の問題に気付く手がかりになりました。2.1.0 で紗重と八重を取り違えていた
+  ことの指摘と、縄の表示を切り替える案もいただきました（ファイルやコードは使っていません）。
   Made the "Yae x Sae" swap mod, which helped identify Sae's and Yae's models and
-  pointed out the missing red rope (none of its files or code are used here).
+  pointed out the missing red rope; also pointed out that 2.1.0 had Sae and Yae the
+  wrong way round and suggested the rope toggle (none of its files or code are used here).
 
 ## License
 

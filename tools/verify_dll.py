@@ -17,12 +17,14 @@ LOADER = os.path.join(HERE, '..', '..', 'mod-loader', 'loader', 'dist')
 INI = """[Swap]
 Main=%s
 Sub=%s
+Rope=%d
 [General]
 Enabled=1
 Log=1
 """
-CASES = (('mayu', 'mio'), ('mio', 'mio'), ('mayu', 'mayu'),
-         ('sae', 'mio'), ('mayu', 'sae'), ('yae', 'sae'), ('sae', 'yae'), ('mio', 'yae'))
+CASES = (('mayu', 'mio', 1), ('mio', 'mio', 1), ('mayu', 'mayu', 1),
+         ('sae', 'mio', 1), ('mayu', 'sae', 1), ('yae', 'sae', 1), ('sae', 'yae', 1), ('mio', 'yae', 1),
+         ('sae', 'yae', 0), ('mio', 'sae', 0))
 
 
 def sha(b):
@@ -41,21 +43,21 @@ def main():
     rdb = open(os.path.join(pkg, 'root.rdb'), 'rb').read()
     rdx = open(os.path.join(pkg, 'root.rdx'), 'rb').read()
     ok_all = True
-    for main_, sub in CASES:
-        open(os.path.join(mod, 'twinswap.ini'), 'w').write(INI % (main_, sub))
+    for main_, sub, rope in CASES:
+        open(os.path.join(mod, 'twinswap.ini'), 'w').write(INI % (main_, sub, rope))
         shutil.rmtree(os.path.join(root, 'cache'), ignore_errors=True)
         for log in (os.path.join(mod, 'twinswap.log'), os.path.join(root, 'loader.log')):
             if os.path.exists(log):
                 os.remove(log)
         subprocess.run([os.path.join(game, 'harness.exe')], cwd=game, check=True, capture_output=True)
         want = dict(zip(('root.rdb', 'root.rdx', '0x%08x.fdata' % R.FDATA_HASH),
-                        R.build(pkg, rdb, rdx, main_, sub)))
+                        R.build(pkg, rdb, rdx, main_, sub, bool(rope))))
         for name, b in want.items():
             p = os.path.join(root, 'cache', 'fdata_package', name)
             got = open(p, 'rb').read() if os.path.exists(p) else b''
             same = got == b
             ok_all &= same
-            print('%-5s %-5s %-18s %s  plugin=%s ref=%s' % (main_, sub, name, 'OK ' if same else 'NG ', sha(got), sha(b)))
+            print('%-5s %-5s rope=%d %-18s %s  plugin=%s ref=%s' % (main_, sub, rope, name, 'OK ' if same else 'NG ', sha(got), sha(b)))
         log = open(os.path.join(mod, 'twinswap.log'), encoding='utf-8-sig').read()
         if '[NG]' in log:
             ok_all = False

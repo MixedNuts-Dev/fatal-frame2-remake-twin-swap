@@ -99,8 +99,8 @@ def find_unique(data, v):
 
 
 # 紗重・八重は 1 着だけ（高精細・軽量の区別も無い）。どの衣装でもこの定義を指す
-SAE_DEF = 0xaa5cc277   # g1m 0xe92e0aff。敵として配置される方
-YAE_DEF = 0x47095b30   # g1m 0x9649abe6。イベントだけに出る方
+SAE_DEF = 0x47095b30   # g1m 0x9649abe6。腰に縄を巻くだけの方（2.1.0 では八重と取り違えていた）
+YAE_DEF = 0xaa5cc277   # g1m 0xe92e0aff。縄が長く垂れている方
 
 
 def def_for(look, i, k):
@@ -175,13 +175,13 @@ def face_fix(g1m, grp):
 
 # 紗重・八重のモデル（g1m, grp）。縄（部品 @1EED9A49）がグループ 768a168d と 6ad387ac にあり、
 # 双子のキャラはこの 2 つを表示しないので、常時表示にする
-SAE_YAE_MODELS = {'sae': (0xe92e0aff, 0xf01d9c7d), 'yae': (0x9649abe6, 0x9d393d64)}
+SAE_YAE_MODELS = {'sae': (0x9649abe6, 0x9d393d64), 'yae': (0xe92e0aff, 0xf01d9c7d)}
 ROPE_GROUPS = (0x768A168D, 0x6AD387AC)
 
 
 # ---- 組み立て ----------------------------------------------------------------
 
-def build(folder, rdb, rdx, main, sub):
+def build(folder, rdb, rdx, main, sub, rope=True):
     """(新しい rdb, 新しい rdx, fdata) を返す"""
     files = []
     for h in DBS:
@@ -194,7 +194,7 @@ def build(folder, rdb, rdx, main, sub):
             g1m, grp = face_fix(g1m, grp)
             files += [(g1m_h, g1m, g1m_meta), (grp_h, grp, grp_meta)]
     for look in ('sae', 'yae'):
-        if look in (main, sub):
+        if rope and look in (main, sub):
             g1m_h, grp_h = SAE_YAE_MODELS[look]
             g1m, g1m_meta = read_entry(folder, rdb, rdx, g1m_h)
             grp, grp_meta = read_entry(folder, rdb, rdx, grp_h)

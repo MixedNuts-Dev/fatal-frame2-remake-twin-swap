@@ -87,6 +87,7 @@ at 1.x, update them all at once; see the loader's README for details. You may co
 |---|---|
 | `Main` | 操作キャラ（本編の澪）の見た目。`mio` / `mayu` / `sae` / `yae`、既定 `mayu` / Look of the player character (Mio in the story). Default `mayu` |
 | `Sub` | 同行キャラ（本編の繭）の見た目。値は `Main` と同じ、既定 `mio` / Look of the companion (Mayu in the story). Same values, default `mio` |
+| `Rope` | 紗重・八重の赤い縄。`1` = 表示（既定）/ `0` = 非表示 / Sae's and Yae's red rope. `1` = show (default) / `0` = hide |
 | `Enabled` | `1` = 有効 on / `0` = 無効 off |
 | `Log` | `1` = ログを出力 write a log / `0` = 出力しない no log |
 
@@ -119,10 +120,12 @@ Costumes are paired one-to-one in costume menu order (Mio's nth ↔ Mayu's nth).
 - 衣装画面のプレビューも入れ替えた後の姿になります。
   The costume menu preview also shows the swapped look.
 - **紗重・八重は白い着物の 1 着だけです。** どの衣装を選んでもその姿になります（澪の 8 着目を除く）。
-  歩いたときの表示（赤い縄を含む）を確認しています。縄は着物を少し突き抜けることがあります。
+  歩いたときの表示（赤い縄を含む）を確認しています。縄は着物を少し突き抜けることがあるので、
+  `Rope=0` で非表示にできます。2.1.0 では紗重と八重を取り違えていて、2.2.0 で直しました。
   **Sae and Yae have a single outfit (the white kimono)**, shown whichever costume is
   selected (except Mio's 8th). Checked walking around, including the red rope, which may
-  clip slightly through the kimono.
+  clip slightly through the kimono; `Rope=0` hides it. 2.1.0 had Sae and Yae the wrong way
+  round; fixed in 2.2.0.
 
 ## 他の Mod との併用 / Using it with other mods
 
@@ -243,18 +246,22 @@ Neither changes the file size. It is applied to Mio's 7 costumes × 2 models whe
 
 ### 紗重・八重 / Sae and Yae
 
-紗重・八重は、白い着物のモデル定義が 1 つずつあります（紗重 `0xAA5CC277` / g1m `0xE92E0AFF`、
-八重 `0x47095B30` / g1m `0x9649ABE6`）。敵として配置表に載っている方を紗重としました。
+紗重・八重は、白い着物（生前の姿）のモデル定義が 1 つずつあります（紗重 `0x47095B30` / g1m
+`0x9649ABE6`、八重 `0xAA5CC277` / g1m `0xE92E0AFF`）。腰に縄を巻くだけの方が紗重、縄が長く垂れて
+いる方が八重です。2.1.0 では、キャラの読み込み設定の表に載っている方を紗重と推定して取り違えて
+いました（ゲーム内で戦う紗重は、血の付いた白装束の別のモデルです）。
 `sae` / `yae` を指定した枠は、全衣装の高精細・軽量ともこの定義を指します。顔は常時表示の
 グループにあるので、顔の修正は要りません。赤い縄（部品 `@1EED9A49`）はグループ `768A168D` と
-`6AD387AC` にあり、澪・繭のキャラは表示しないので、顔と同じ方法でグループ 0 へ移します。
+`6AD387AC` にあり、澪・繭のキャラは表示しないので、顔と同じ方法でグループ 0 へ移します
+（`Rope=0` のときは移しません）。
 
-Sae and Yae each have one model definition, the white kimono (Sae `0xAA5CC277` / g1m
-`0xE92E0AFF`, Yae `0x47095B30` / g1m `0x9649ABE6`); the one listed in the enemy
-placement tables is Sae. A slot set to `sae` / `yae` points at that definition for every
+Sae and Yae each have one model definition, the white kimono they wear while alive (Sae
+`0x47095B30` / g1m `0x9649ABE6`, Yae `0xAA5CC277` / g1m `0xE92E0AFF`). Sae only has the rope
+tied around her waist; Yae's rope hangs down. 2.1.0 had them the wrong way round (the Sae
+fought in the game is a different, blood-stained model). A slot set to `sae` / `yae` points at that definition for every
 costume, high and low detail alike. Their faces are already in the always-visible group.
 The red rope (part `@1EED9A49`) sits in groups `768A168D` and `6AD387AC`, which the
-twins never show, so it is moved into group 0 the same way as the face.
+twins never show, so it is moved into group 0 the same way as the face (not with `Rope=0`).
 
 ### ファイルの差し替え / Serving the data
 
@@ -313,9 +320,11 @@ The archive format (rdb / rdx / fdata) was understood from eArmada8's
 [Yumia fdata tools](https://github.com/eArmada8/yumia_fdata_tools).
 
 紗重・八重への対応では、SyobonAction 氏の Mod「Yae x Sae」がモデルの特定と赤い縄の問題に
-気付く手がかりになりました（ファイルやコードは使っていません）。
+気付く手がかりになりました。2.1.0 での紗重・八重の取り違えの指摘と、縄の表示を切り替える案も
+いただきました（ファイルやコードは使っていません）。
 SyobonAction's "Yae x Sae" mod helped identify Sae's and Yae's models and pointed out the
-missing red rope (none of its files or code are used here).
+missing red rope; SyobonAction also pointed out that 2.1.0 had Sae and Yae the wrong way
+round and suggested the rope toggle (none of its files or code are used here).
 
 ## ライセンス / License
 
